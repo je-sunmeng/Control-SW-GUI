@@ -1,6 +1,6 @@
 # 전자전기-레이다 시연 GUI (제어 SW) — 파일 및 클래스 설계서
 
-> 상태: **설계 단계 (v0.1)** — 코드/프로젝트 생성은 Macbook에서 프로젝트 경로 지정 후 착수
+> 상태: **설계 단계 (v0.2)** — 코드/프로젝트 생성은 Macbook에서 프로젝트 경로 지정 후 착수
 > 대상: Qt 6 (C++17), CMake, Widgets + Network
 
 ---
@@ -20,9 +20,10 @@
 ### 1.1 설계 원칙
 1. **계층 분리**: Model(데이터) / Map(전시) / Sim(시뮬레이션 엔진) / Net(통신) / UI(위젯) / Persistence(저장).
 2. **UI는 Model을 직접 수정하지 않고** `ScenarioModel`의 API와 시그널을 통해서만 변경 → 지도·목록·설정패널 자동 동기화.
-3. **메시지 확장성**: 메시지는 `IMessage` 인터페이스 + `MessageFactory` 레지스트리로 Opcode 단위 추가.
-4. **모드 독립성**: 단독모드에서는 `NetworkManager`가 아예 동작하지 않으며, MainLobe 시점은 엔진이 내부 생성.
+3. **메시지 확장성**: Command Code 값은 외부 매핑 파일(`protocol.json`)로 분리하고, 메시지는 `IMessage` 인터페이스 + `MessageFactory` 레지스트리로 추가.
+4. **모드 독립성**: 단독모드에서는 `NetworkManager`가 아예 동작하지 않으며, MainLobe 시점/탐지 결과는 엔진이 내부 생성. 연동모드에서는 신호발생장치의 MainLobe 탐지결과 메시지를 그대로 사용.
 5. **시간 관리 일원화**: 모든 이동/빔 회전은 `SimClock`의 시뮬레이션 시간(sec)으로 계산(배속은 Clock만 영향).
+6. **일시정지는 단독모드 전용**: 연동모드에서는 일시정지/재개 불가(타 장비로 일시정지 명령 송신 없음).
 
 ---
 
@@ -35,11 +36,13 @@ Control-SW-GUI/
 ├── README.md
 ├── docs/
 │   ├── DESIGN.md                      # 본 문서
-│   └── ICD.md                         # 메시지 인터페이스 정의서 (개발 착수 시 작성)
+│   ├── PROTOCOL_GUIDE.md              # Command Code/메시지 확장 설계 및 작성 가이드
+│   └── ICD.md                         # 메시지 인터페이스 정의서 (타 장비 협의 후 작성)
 ├── resources/
 │   ├── resources.qrc
 │   ├── icons/                         # 버튼/오브젝트 아이콘 (svg)
 │   ├── styles/dark.qss                # 다크 테마 스타일시트
+│   ├── protocol/protocol.json         # Command Code 매핑 기본값 (실행파일 옆 파일로 덮어쓰기 가능)
 │   └── map/                           # 벡터지도 데이터 (GeoJSON, 아래 7장 참고)
 │       ├── coastline_world.geojson
 │       ├── countries.geojson
@@ -97,15 +100,20 @@ Control-SW-GUI/
 │   │   ├── RouteKinematics.h/.cpp     # Route + t → 위치/고도/방위
 │   │   ├── RadarScanner.h/.cpp        # MainLobe 기준 빔 방위 계산
 │   │   ├── FalseTargetGenerator.h/.cpp# 편대 허위타겟/랜덤 고스트 위치 생성
-│   │   ├── DetectionEvaluator.h/.cpp  # 탐지 판정(거리, 빔, 잡음섹터)
+│   │   ├── IDetectionSource.h         # 탐지 결과 공급 인터페이스
+│   │   ├── LocalDetectionSource.h/.cpp# 단독모드: 자체 탐지 판정(거리, 빔, 잡음섹터)
+│   │   ├── ExternalDetectionSource.h/.cpp # 연동모드: 수신 MainLobe 탐지결과 메시지 반영
 │   │   └── SimSnapshot.h              # 한 틱의 결과(전시용 값 묶음)
 │   ├── net/
 │   │   ├── MessageHeader.h/.cpp       # Opcode(32)+DataSize(32), BigEndian
-│   │   ├── Opcode.h                   # Src/Dst/Cmd 패킹 + CommandCode enum
+│   │   ├── Opcode.h/.cpp              # Src/Dst/Cmd 패킹/해석 (숫자 하드코딩 없음)
+│   │   ├── MessageId.h                # 내부 논리 메시지 ID enum (Command Code와 분리)
+│   │   ├── ProtocolTable.h/.cpp       # protocol.json 로드: MessageId ↔ (Src, Dst, Cmd) 매핑
 │   │   ├── ByteWriter.h/.cpp          # QDataStream(BigEndian) 래퍼: u8/u16/u32/f32/f64/string
 │   │   ├── ByteReader.h/.cpp
 │   │   ├── IMessage.h                 # 메시지 인터페이스
-│   │   ├── MessageFactory.h/.cpp      # Opcode → 생성자 레지스트리
+│   │   ├── MessageFactory.h/.cpp      # MessageId → 생성자 레지스트리
+│   │   ├── MessageRegistry.cpp        # 모든 메시지 클래스 등록 (새 메시지 = 1줄 추가)
 │   │   ├── messages/                  # 메시지별 클래스 (2.1 참고)
 │   │   ├── FrameDecoder.h/.cpp        # TCP 스트림 → 프레임 분리(부분수신 처리)
 │   │   ├── ClientSession.h/.cpp       # 접속 클라이언트 1개(QTcpSocket), 장치 식별
@@ -137,7 +145,7 @@ Control-SW-GUI/
 │       ├── ModeSelector.h/.cpp        # 단독/연동 라디오
 │       ├── DeviceStatusWidget.h/.cpp  # 분석SW/신호발생장치 연결 상태
 │       ├── MainLobeLampWidget.h/.cpp  # 레이다별 램프(수신 시 점등 후 감쇠)
-│       ├── SimControlWidget.h/.cpp    # 상태 표기 + 임무전송/시작(재개)/일시정지/중지/새로고침
+│       ├── SimControlWidget.h/.cpp    # 상태 표기 + 임무전송/시작(재개)/일시정지(단독 전용)/중지/새로고침
 │       ├── SpeedSelector.h/.cpp       # 1/2/4/8 배속
 │       ├── LampIndicator.h/.cpp       # 공용 램프 위젯
 │       └── LogPanel.h/.cpp            # 하단 로그 테이블 + 필터
@@ -149,7 +157,8 @@ Control-SW-GUI/
     ├── tst_GeoUtils.cpp
     ├── tst_RouteKinematics.cpp
     ├── tst_RadarScanner.cpp
-    ├── tst_DetectionEvaluator.cpp
+    ├── tst_LocalDetectionSource.cpp
+    ├── tst_ProtocolTable.cpp
     └── tst_JsonSerializer.cpp
 ```
 
@@ -163,12 +172,14 @@ Control-SW-GUI/
 | `MissionFalseTargetMsg` | 제어 → 신호발생 | 단독허위표적 전체 |
 | `MissionStartMsg` | 제어 → 분석SW | 임무시작 |
 | `MissionStartSigGenMsg` | 제어 → 신호발생 | 임무시작 + 편대 시작위치 + 전자전기 시작위치 |
-| `MissionPauseMsg` / `MissionStopMsg` | 제어 → 양쪽 | 일시정지 / 임무종료 |
+| `MissionStopMsg` | 제어 → 양쪽 | 임무종료 |
 | `JammerPositionMsg` | 제어 → 신호발생 | 1초 주기 전자전기 현재위치 |
 | `FormationPositionMsg` | 제어 → 신호발생 | 데이터링크 간격 주기 편대 현재위치 |
-| `MainLobeNotifyMsg` | 신호발생 → 제어 | 레이다별 MainLobe 탐색 시점 |
+| `MainLobeNotifyMsg` | 신호발생 → 제어 | 레이다별 MainLobe 탐색 시점 + 탐지결과(연동모드 탐지 전시의 원천) |
 | `HeartbeatMsg` (선택) | 양방향 | 연결/식별 확인 |
-| `RawMessage` | — | 미등록 Opcode 수신 시 로그용 |
+| `RawMessage` | — | 미등록 Opcode 수신 시 로그용 (hex dump) |
+
+> 클래스명/역할은 확정, **Command Code 값과 payload 필드는 타 장비 협의 후 결정** → `docs/PROTOCOL_GUIDE.md` 절차로 추가·변경
 
 ---
 
@@ -208,7 +219,7 @@ SimObject (abstract, QObject 비상속 – 값 객체)
 | `Route` | `QVector<GeoPoint> waypoints; QVector<RouteSegment> segments;` `addWaypoint()`, `moveWaypoint(i, p)`, `removeWaypoint(i)`, `totalDurationSec()`, `isValid()` | waypoint 추가 시 segment 자동 추가(직전 값 복사) |
 | `Radar` | `GeoPoint pos; double freqMHz, priMs, pwUs, maxRangeKm, scanPeriodSec; ScanDirection scanDir; double beamWidthDeg; int colorIndex;` | 최대 4개, colorIndex 0~3 |
 | `JammerAircraft` | `Route route;` | 1개 고정 |
-| `FalseTargetOffset` | `double angleDeg; double initDistanceKm;` | 이동방향 기준 시계방향 각도 |
+| `FalseTargetOffset` | `double angleDeg; double distanceKm;` | 이동방향 기준 시계방향 각도, 이격거리는 **임무 중 고정** |
 | `JammingConfig` | `QVector<FalseTargetOffset> targets /*0~8*/; double noiseBandwidthMHz;` | |
 | `FriendlyFormation` | `Route route; int formationSize /*1~4*/; JammingConfig jamming;` | 최대 1개 |
 | `StandaloneFalseTarget` | `FalseTargetType ftType; GeoPoint pos; Route route; double detectAngleDeg;` | 타입에 따라 사용 필드 상이, `validate()` |
@@ -299,24 +310,41 @@ Idle ─ 핸들 드래그 → moveRadar / moveWaypoint (실시간 반영, 임무
 - `onMainLobe(radarId, t)` : `t0=t`, `az0 = bearing(radar → jammer위치(t))`
 - `double beamAzimuthAt(radarId, t)` : `az0 ± 360·(t−t0)/scanPeriod` (CW:+, CCW:−), mod 360
 - 단독모드: 시작 시점(및 매 스캔주기)에 엔진이 내부적으로 `onMainLobe` 생성
-- 연동모드: `MainLobeNotifyMsg` 수신 전까지 빔 미전시(또는 대기 표시)
+- 연동모드: `MainLobeNotifyMsg` 수신 전까지 빔 미전시(또는 대기 표시), 수신 시마다 재동기화
 
 **`FalseTargetGenerator`**
-- 편대 허위타겟: `destination(formationPos, heading + angle_i (시계방향), dist_i)` (i=1..N) — 이격거리는 우선 '초기이격거리' 고정 사용, 시간에 따른 변화 규칙은 **TBD**(전략 객체로 분리)
+- 편대 허위타겟: `destination(formationPos, heading + angle_i (시계방향), dist_i)` (i=1..N) — 이격각도·이격거리 모두 **고정값**(편대와 함께 강체처럼 이동)
 - 랜덤 고스트: 각 레이다 탐지범위 내 균등 랜덤 위치, 수명 1~3초, 생성 주기 랜덤 (`QRandomGenerator`, 시드 고정 옵션)
 
-**`DetectionEvaluator`**
+**`IDetectionSource`** — 탐지 결과 공급 추상화 (모드별 구현 교체)
+```cpp
+class IDetectionSource {
+public:
+    virtual ~IDetectionSource() = default;
+    virtual void reset() = 0;
+    virtual QVector<Detection> collect(const SimContext& ctx, double simTime) = 0; // 틱마다 호출
+};
+```
+- `Detection { quint32 radarId; QString targetKey; GeoPoint pos; double simTime; DetectionOrigin origin /*Local, External*/; }`
+- 엔진은 모드에 따라 `LocalDetectionSource` / `ExternalDetectionSource` 중 하나를 주입받음
+
+**`LocalDetectionSource`** (단독모드)
 - 대상: 편대 허위타겟, 고정/이동 단독 허위표적 (랜덤 고스트는 제외)
 - 조건: `거리 ≤ maxRange` AND `|방위 − 빔방위| ≤ 빔폭/2` AND `잡음섹터에 포함되지 않음`
 - 잡음섹터: 잡음표적 각각에 대해 `|bearing(radar→target) − bearing(radar→noise)| ≤ detectAngle/2` 이면 해당 레이다 탐지 불가
-- 결과: `QVector<Detection{radarId, targetKey, GeoPoint, simTime}>`
-- 연동모드에서 외부(분석SW 등)로부터 탐지결과 수신 시 대체 가능하도록 `IDetectionSource` 인터페이스로 추상화 (**TBD**)
+- 결과: `QVector<Detection>` (origin = Local)
+
+**`ExternalDetectionSource`** (연동모드)
+- 연동모드의 탐지결과 = **신호발생장치로부터 수신한 MainLobe 탐지결과 메시지**
+- `NetworkManager` → `MissionController`가 `MainLobeNotifyMsg`를 `push(const MainLobeNotifyMsg&)`로 큐잉 → 다음 틱 `collect()`에서 `Detection`(origin = External)으로 변환
+- 같은 메시지로 `RadarScanner::onMainLobe()` 동기화 및 램프 점등 (메시지 1개 → 빔 동기화 + 램프 + 탐지 전시)
+- 자체 계산 없음(잡음섹터/랜덤 고스트는 전시용으로만 유지). 메시지 필드(탐지 위치 포함 여부 등)는 ICD 협의 결과에 따름
 
 **`SimSnapshot`** : 틱 결과 — 이동체 상태, 빔 방위, 허위타겟 위치, 탐지, 고스트, 활성 잡음섹터
 
 **`SimulationEngine : QObject`**
 - `QTimer` 틱(기본 33ms ≈ 30fps, 전시용) — 연산은 SimClock 시간 기반이므로 틱 지연과 무관
-- 상태머신 `SimState` 보유: `start()`, `pause()`, `resume()`, `stop()`, `reset()`
+- 상태머신 `SimState` 보유: `start()`, `pause()`, `resume()`(단독모드만 허용, 연동모드 호출 시 무시+에러 로그), `stop()`, `reset()`
 - 주기 이벤트 스케줄러: 시뮬레이션 시간 기준 `1s` 마다 `jammerPositionDue(state)`, `datalinkInterval` 마다 `formationPositionDue(state)` 시그널
 - Signals: `snapshotReady(SimSnapshot)`, `stateChanged(SimState)`, `jammerPositionDue`, `formationPositionDue`, `mainLobeSynced(radarId)`
 
@@ -331,11 +359,13 @@ Idle ─ 핸들 드래그 → moveRadar / moveWaypoint (실시간 반영, 임무
 
 | 클래스 | 책임 |
 |---|---|
-| `Opcode` | `static quint32 make(src,dst,cmd)`, `src()/dst()/cmd()` 추출, `toString()` (`0x2192 0010` 형식) |
+| `Opcode` | `static quint32 make(src,dst,cmd)`, `src()/dst()/cmd()` 추출, `toString()` (`0x2192 0010` 형식) — 값 자체는 보유하지 않음 |
+| `MessageId` | 내부 논리 ID enum (`RadarInfo`, `JammerRoute`, …). 코드 전반은 이 ID만 사용 |
+| `ProtocolTable` | `protocol.json` 로드 → `MessageId ↔ {src, dst, cmd}` 양방향 조회, 중복/누락 검증, 로드 결과 로그 |
 | `MessageHeader` | `quint32 opcode; quint32 dataSize;` `encode()/decode()` |
 | `ByteWriter` / `ByteReader` | `QDataStream` `BigEndian`, `setFloatingPointPrecision` 명시, 문자열은 `u16 len + UTF-8`, 언더런 검출 |
-| `IMessage` | `virtual quint16 command() const; virtual void writePayload(ByteWriter&) const; virtual bool readPayload(ByteReader&); virtual QString summary() const;` |
-| `MessageFactory` | `registerType<T>(cmd)`, `std::unique_ptr<IMessage> create(quint16 cmd)` — 새 메시지 추가 = 클래스 1개 + 등록 1줄 |
+| `IMessage` | `virtual MessageId id() const; virtual void writePayload(ByteWriter&) const; virtual bool readPayload(ByteReader&); virtual QString summary() const;` |
+| `MessageFactory` | `registerType<T>(MessageId)`, 수신 시 `(src, cmd)` → `ProtocolTable` → `MessageId` → 생성. 미등록은 `RawMessage` |
 | `FrameDecoder` | 수신 버퍼 누적 → 헤더 8B 확보 → DataSize만큼 확보 시 프레임 방출, 최대 크기 초과 시 오류/버퍼 리셋 |
 | `ClientSession : QObject` | `QTcpSocket` 래핑, 최초 수신 Opcode의 Src(또는 접속 IP 설정값)로 장치 식별, `frameReceived`, `disconnected` |
 | `TcpServer : QObject` | `QTcpServer` listen(포트 설정), 세션 생성/정리 |
@@ -344,21 +374,24 @@ Idle ─ 핸들 드래그 → moveRadar / moveWaypoint (실시간 반영, 임무
 - 소켓 I/O는 메인 스레드 이벤트루프(Qt 비동기)로 충분 — 데이터량이 적음. 필요 시 `NetworkManager`를 `QThread`로 이동 가능하도록 시그널/슬롯만 사용.
 - 단독모드: `NetworkManager::setEnabled(false)` → 서버 close, 송신 무시.
 
-**Command Code (가안 — 연동 장비 ICD 확정 시 `Opcode.h`만 수정)**
+**Command Code 확장 설계** (상세: `docs/PROTOCOL_GUIDE.md`)
+- Command Code는 **타 장비 협의 후 결정** → 코드에 숫자를 하드코딩하지 않고 `protocol.json`에서 매핑
+- 값 변경 = JSON 수정만(재빌드 불필요) / 새 메시지 = `MessageId` 1줄 + 메시지 클래스 1개 + Factory 등록 1줄 + JSON 1항목
+- 아래 값은 **개발·모의시험용 임시 값(placeholder)**
 
-| Cmd | 이름 | Dst | Payload 요지 |
+| MessageId | 임시 Cmd | Dst | Payload 요지 (협의 대상) |
+
 |---|---|---|---|
-| 0x0001 | RADAR_INFO | 0x92, 0xB1 | count(u8) + [id(u32), lat, lon(f64), freq, pri, pw, range, period(f32), dir(u8), beamWidth(f32)] |
-| 0x0002 | JAMMER_ROUTE | 0x92 | wpCount(u16) + [lat, lon, alt, speed] |
-| 0x0003 | FORMATION_INFO | 0x92, 0xB1 | route + size(u8) + ftCount(u8) + [angle, dist] + noiseBW |
-| 0x0004 | FALSE_TARGET_INFO | 0xB1 | count + [id, type(u8), 타입별 필드] |
-| 0x0010 | MISSION_START | 0x92, 0xB1 | (0xB1: 편대 시작위치 + 전자전기 시작위치) |
-| 0x0011 | MISSION_PAUSE | 0x92, 0xB1 | — |
-| 0x0012 | MISSION_STOP | 0x92, 0xB1 | — |
-| 0x0020 | JAMMER_POSITION | 0xB1 | simTime, lat, lon, alt, heading |
-| 0x0021 | FORMATION_POSITION | 0xB1 | simTime, lat, lon, alt, heading |
-| 0x0100 | MAINLOBE_NOTIFY | 0x21 (from 0xB1) | radarId, 탐색시점(time) |
-| 0x00F0 | HEARTBEAT | 양방향 | 장치코드, 상태 |
+| RadarInfo | 0x0001 | 0x92, 0xB1 | count(u8) + [id(u32), lat, lon(f64), freq, pri, pw, range, period(f32), dir(u8), beamWidth(f32)] |
+| JammerRoute | 0x0002 | 0x92 | wpCount(u16) + [lat, lon, alt, speed] |
+| FormationInfo | 0x0003 | 0x92, 0xB1 | route + size(u8) + ftCount(u8) + [angle, dist] + noiseBW |
+| FalseTargetInfo | 0x0004 | 0xB1 | count + [id, type(u8), 타입별 필드] |
+| MissionStart | 0x0010 | 0x92, 0xB1 | (0xB1: 편대 시작위치 + 전자전기 시작위치) |
+| MissionStop | 0x0012 | 0x92, 0xB1 | — |
+| JammerPosition | 0x0020 | 0xB1 | simTime, lat, lon, alt, heading |
+| FormationPosition | 0x0021 | 0xB1 | simTime, lat, lon, alt, heading |
+| MainLobeNotify | 0x0100 | 0x21 (from 0xB1) | radarId, 탐색시점, 탐지결과 |
+| Heartbeat | 0x00F0 | 양방향 | 장치코드, 상태 |
 
 ### 4.6 Mission 계층
 
@@ -368,12 +401,12 @@ Idle ─ 핸들 드래그 → moveRadar / moveWaypoint (실시간 반영, 임무
 |---|---|
 | `sendMission()` | (연동 & 양 장치 연결 시만) 분석SW: RADAR_INFO, JAMMER_ROUTE, FORMATION_INFO / 신호발생: RADAR_INFO, FORMATION_INFO, FALSE_TARGET_INFO → `missionSent=true` |
 | `start()` | 시나리오 검증 → 분석SW: START / 신호발생: START(+시작위치) → `engine.start()` → `model.setLocked(true)` |
-| `pause()` | 양 장치 PAUSE → `engine.pause()`; 이때 시작 버튼 텍스트 "재개" |
-| `resume()` | (재개 명령은 START 재사용 또는 별도 Cmd — **TBD**) → `engine.resume()` |
+| `pause()` | **단독모드 전용** → `engine.pause()` (메시지 송신 없음); 시작 버튼 텍스트 "재개" |
+| `resume()` | **단독모드 전용** → `engine.resume()` |
 | `stop()` | 양 장치 STOP → `engine.stop()` |
 | `refresh()` | Stopped면 즉시 초기화 / 아니면 `QMessageBox` 예·아니요 → 예: `stop()` 후 초기화 (초기화 = 엔진 reset, 동적아이템 제거, 모델 잠금 해제, 상태 PreMission; 오브젝트 설정 유지 여부는 **TBD**, 기본은 유지) |
 | 엔진 `jammerPositionDue` / `formationPositionDue` | 연동모드일 때 신호발생장치로 위치 메시지 송신 |
-| 수신 `MAINLOBE_NOTIFY` | `engine.radarScanner.onMainLobe()` + `MainLobeLampWidget` 점등 |
+| 수신 `MainLobeNotify` | `RadarScanner::onMainLobe()` + `ExternalDetectionSource::push()` + `MainLobeLampWidget` 점등 |
 
 **버튼 활성화 규칙** (`updateActions()`가 상태 변경 시 일괄 계산)
 
@@ -381,8 +414,9 @@ Idle ─ 핸들 드래그 → moveRadar / moveWaypoint (실시간 반영, 임무
 |---|---|---|---|---|---|---|---|
 | 임무 전 (단독) | ✗ | ✓(검증 통과 시) | ✗ | ✗ | ✓ | ✓ | ✓ |
 | 임무 전 (연동) | 두 장치 연결 시 ✓ | 임무전송 후 ✓ | ✗ | ✗ | ✓ | ✗(1배) | ✓ |
-| 임무 중 | ✗ | ✗ | ✓ | ✓ | ✓(확인) | 단독만 ✓ | ✗ |
-| 일시정지 | ✗ | ✓("재개") | ✗ | ✓ | ✓(확인) | 단독만 ✓ | ✗ |
+| 임무 중 (단독) | ✗ | ✗ | ✓ | ✓ | ✓(확인) | ✓ | ✗ |
+| 임무 중 (연동) | ✗ | ✗ | ✗(숨김/비활성) | ✓ | ✓(확인) | ✗ | ✗ |
+| 일시정지 (단독만 존재) | ✗ | ✓("재개") | ✗ | ✓ | ✓(확인) | ✓ | ✗ |
 | 중지 | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ |
 
 ### 4.7 Log 계층
@@ -452,11 +486,11 @@ MainWindow
 1. 분석SW / 신호발생장치 접속 → `deviceConnectionChanged` → 램프 녹색, 둘 다 연결 시 [임무전송] 활성
 2. [임무전송] → 메시지 송신 (Tx 로그) → [시작] 활성
 3. [시작] → START 송신 → 엔진 시작, 1초/데이터링크 주기 위치 송신
-4. 신호발생장치 `MAINLOBE_NOTIFY` 수신 → 해당 레이다 램프 점등, 빔 동기화(전자전기 방향 기준) 후 회전 전시
-5. [일시정지] → PAUSE 송신, 엔진/주기송신 정지, 버튼 "재개"
+4. 신호발생장치 `MainLobeNotify` 수신 → 해당 레이다 램프 점등, 빔 동기화(전자전기 방향 기준) 후 회전 전시, 메시지의 탐지결과를 지도에 전시
+5. (연동모드에서는 일시정지 불가)
 6. [중지] → STOP 송신, 엔진 정지 → [새로고침] → 초기 상태
 
-**단독모드**: 네트워크 미사용, [임무전송] 비활성, [시작] 시 내부 MainLobe 생성, 배속 선택 가능
+**단독모드**: 네트워크 미사용, [임무전송] 비활성, [시작] 시 내부 MainLobe 생성·자체 탐지 판정, 배속 선택 가능, 일시정지/재개 가능
 
 ---
 
@@ -503,13 +537,19 @@ MainWindow
 
 ## 10. 미확정 사항 (TBD — 개발 중 확인 필요)
 
-1. 메시지 Command Code 및 payload 필드 정의(ICD) — 현재 가안
+1. 메시지 Command Code 및 payload 필드 정의(ICD) — 타 장비 협의 후 `protocol.json` + 메시지 클래스에 반영
 2. 실수형 인코딩(f32 vs f64 vs 고정소수점 정수)
 3. 장치 식별 방식: 접속 IP/포트 설정 vs 첫 메시지 Src 코드
-4. 일시정지 후 **재개** 시 송신할 명령 (START 재사용 vs 별도 RESUME)
-5. 편대 허위타겟 '초기이격거리'의 시간에 따른 변화 규칙
-6. 연동모드에서 '레이다가 탐지한 허위표적' 정보의 출처(자체 계산 vs 외부 수신)
-7. 전자전기 오브젝트의 저장/불러오기 및 데이터링크 전송간격 저장 위치
-8. 새로고침 시 설정된 오브젝트 유지 여부
-9. MainLobe 수신 램프 점등 시간/방식(펄스 vs 래치)
-10. 동선 종료 이후 이동체 처리(정지/소멸/루프)
+4. MainLobe 탐지결과 메시지에 탐지 위치(위경도/거리·방위) 포함 형태
+5. 전자전기 오브젝트의 저장/불러오기 및 데이터링크 전송간격 저장 위치
+6. 새로고침 시 설정된 오브젝트 유지 여부
+7. MainLobe 수신 램프 점등 시간/방식(펄스 vs 래치)
+8. 동선 종료 이후 이동체 처리(정지/소멸/루프)
+
+### 결정 사항 이력
+| 일자 | 결정 |
+|---|---|
+| 2026-11-20 | Command Code는 타 장비 협의 후 결정 → 외부 매핑(`protocol.json`) 기반 확장 설계 |
+| 2026-11-20 | 일시정지/재개는 **단독모드 전용** (PAUSE 메시지 삭제) |
+| 2026-11-20 | 아군편대 허위타겟 이격거리는 **고정** |
+| 2026-11-20 | 연동모드 탐지결과 = 신호발생장치로부터 **수신한 MainLobe 탐지결과 메시지** |
