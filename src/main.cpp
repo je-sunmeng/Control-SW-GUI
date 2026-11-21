@@ -2,6 +2,7 @@
 #include "app/MainWindow.h"
 #include "log/Logger.h"
 #include "map/MapView.h"
+#include "mission/MissionController.h"
 #include "model/ScenarioModel.h"
 #include "persistence/ObjectFileIO.h"
 
@@ -44,6 +45,13 @@ int main(int argc, char* argv[])
     QCommandLineOption scenarioOpt(QStringLiteral("scenario"), QStringLiteral("시작 시 시나리오 파일(*.scenario.json) 불러오기"),
                                    QStringLiteral("file"));
     parser.addOption(scenarioOpt);
+    QCommandLineOption startOpt(QStringLiteral("start"), QStringLiteral("시작 시 단독모드 임무 자동 시작 (개발/시연용)"));
+    parser.addOption(startOpt);
+    QCommandLineOption speedOpt(QStringLiteral("speed"), QStringLiteral("배속 1/2/4/8"), QStringLiteral("factor"));
+    parser.addOption(speedOpt);
+    QCommandLineOption shotDelayOpt(QStringLiteral("screenshot-delay"), QStringLiteral("스크린샷 지연(ms, 기본 800)"),
+                                    QStringLiteral("ms"));
+    parser.addOption(shotDelayOpt);
     parser.process(app);
 
     applyStyle(app);
@@ -62,6 +70,14 @@ int main(int argc, char* argv[])
         }
     }
 
+    if (parser.isSet(speedOpt))
+        ctx.mission().setSpeed(parser.value(speedOpt).toInt());
+    if (parser.isSet(startOpt)) {
+        QStringList errors;
+        if (!ctx.mission().startOrResume(&errors))
+            ctx.logger().error(QStringLiteral("자동 시작 실패: %1").arg(errors.join(QStringLiteral(" / "))), QStringLiteral("App"));
+    }
+
     if (parser.isSet(zoomOpt)) {
         const double target = parser.value(zoomOpt).toDouble();
         QTimer::singleShot(100, &window, [&window, target] {
@@ -73,7 +89,8 @@ int main(int argc, char* argv[])
 
     if (parser.isSet(screenshotOpt)) {
         const QString path = parser.value(screenshotOpt);
-        QTimer::singleShot(800, &window, [&window, &ctx, path] {
+        const int delay = parser.isSet(shotDelayOpt) ? parser.value(shotDelayOpt).toInt() : 800;
+        QTimer::singleShot(delay, &window, [&window, &ctx, path] {
             const bool ok = window.grab().save(path, "PNG");
             if (ok)
                 ctx.logger().info(QStringLiteral("스크린샷 저장: %1").arg(path), QStringLiteral("App"));

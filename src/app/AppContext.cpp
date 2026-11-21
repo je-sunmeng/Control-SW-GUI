@@ -2,7 +2,9 @@
 
 #include "log/LogTableModel.h"
 #include "map/MapLayerManager.h"
+#include "mission/MissionController.h"
 #include "model/ScenarioModel.h"
+#include "sim/SimulationEngine.h"
 #include "log/Logger.h"
 
 #include <QCoreApplication>
@@ -15,6 +17,8 @@ AppContext::AppContext(QObject* parent)
     , m_logModel(new LogTableModel(LogTableModel::DefaultMaxRows, this))
     , m_mapLayers(new MapLayerManager(this))
     , m_scenario(new ScenarioModel(this))
+    , m_engine(new SimulationEngine(*m_scenario, this))
+    , m_mission(new MissionController(*m_scenario, *m_engine, *m_logger, this))
 {
     connect(m_logger, &Logger::entryAdded, m_logModel, &LogTableModel::append);
     m_logger->installQtMessageHandler();

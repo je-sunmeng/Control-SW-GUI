@@ -9,6 +9,12 @@ class MapLayerManager;
 class MapProjection;
 class MapObjectItem;
 class ScenarioModel;
+class RadarBeamItem;
+class PlatformItem;
+class DetectionMarkItem;
+class RandomGhostItem;
+class NoiseSectorItem;
+struct SimSnapshot;
 
 // 지도 Scene
 //  - 배경 레이어 아이템 (MapLayerManager 표시 여부 연동)
@@ -32,8 +38,14 @@ public:
     MapObjectItem* objectItem(ObjectId id) const { return m_objectItems.value(id); }
     ObjectId highlightedObject() const { return m_highlighted; }
 
+    int runtimeItemCount() const;   // 테스트/진단용
+
 public slots:
     void setHighlightedObject(ObjectId id);
+    // 시뮬레이션 틱 결과 전시: 이동체/빔/허위타겟/탐지마커/고스트/잡음섹터
+    void applySnapshot(const SimSnapshot& snapshot);
+    // 임무 후 동적 아이템 제거
+    void resetRuntimeItems();
 
 signals:
     // 지도에서 오브젝트 핸들을 눌렀을 때
@@ -55,4 +67,12 @@ private:
     ScenarioModel* m_model = nullptr;
     QHash<ObjectId, MapObjectItem*> m_objectItems;
     ObjectId m_highlighted = 0;
+
+    // 런타임(임무 중) 아이템
+    QHash<ObjectId, RadarBeamItem*> m_beams;
+    QHash<ObjectId, PlatformItem*> m_platforms;
+    QVector<PlatformItem*> m_formationTargets;
+    QList<DetectionMarkItem*> m_marks;
+    QHash<quint32, RandomGhostItem*> m_ghosts;
+    QHash<quint64, NoiseSectorItem*> m_noiseSectors;   // (radarId << 32) | noiseId
 };

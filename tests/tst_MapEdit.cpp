@@ -8,6 +8,7 @@
 #include "map/items/RouteItem.h"
 #include "map/items/WaypointHandleItem.h"
 #include "model/ScenarioModel.h"
+#include "sim/SimulationEngine.h"
 
 #include <QApplication>
 #include <QMouseEvent>
@@ -36,6 +37,7 @@ private slots:
     void dragRadarHandle_movesModel();
     void editMode_leftClickDoesNotDragHandle();
     void destroySceneBeforeController();
+    void runtimeItems_followSnapshots();
 
 private:
     void click(Qt::MouseButton b, const GeoPoint& p)
@@ -293,6 +295,32 @@ void TstMapEdit::destroySceneBeforeController()
     m_view.reset();
     m_scene.reset();
     m_edit.reset();
+}
+
+void TstMapEdit::runtimeItems_followSnapshots()
+{
+    const ObjectId r = m_model->addRadar({38.0, 126.0});
+    const ObjectId j = m_model->createJammer();
+    m_model->appendWaypoint(j, {37.0, 125.0});
+    m_model->appendWaypoint(j, {37.0, 127.0});
+    const ObjectId n = m_model->addFalseTarget(FalseTargetType::Noise);
+    m_model->setPointPosition(n, {38.0, 128.0});
+    m_model->addFalseTarget(FalseTargetType::Random);
+    Q_UNUSED(r);
+
+    SimulationEngine engine(*m_model);
+    engine.setTimerEnabled(false);
+    engine.setRandomSeed(7);
+    connect(&engine, &SimulationEngine::snapshotReady, m_scene.get(), &MapScene::applySnapshot);
+    QVERIFY(engine.start());
+    for (int i = 1; i <= 100; ++i)
+        engine.advanceTo(i * 0.1);
+    // 빔 1 + 전자전기 1 + 잡음섹터 1 + (고스트 0~n)
+    QVERIFY2(m_scene->runtimeItemCount() >= 3, qPrintable(QString::number(m_scene->runtimeItemCount())));
+    engine.stop();
+    QVERIFY(m_scene->runtimeItemCount() >= 3);   // 중지 후에도 마지막 상태 유지
+    engine.reset();                              // 새로고침 → 전시 초기화
+    QCOMPARE(m_scene->runtimeItemCount(), 0);
 }
 
 QTEST_MAIN(TstMapEdit)

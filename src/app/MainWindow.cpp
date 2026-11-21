@@ -4,7 +4,9 @@
 #include "common/Types.h"
 #include "log/LogTableModel.h"
 #include "log/Logger.h"
+#include "mission/MissionController.h"
 #include "model/ScenarioModel.h"
+#include "sim/SimulationEngine.h"
 #include "map/MapEditController.h"
 #include "map/MapLayerManager.h"
 #include "map/MapScene.h"
@@ -106,6 +108,7 @@ void MainWindow::setupCentral()
     m_mapView = new MapView(m_mapScene, this);
     setCentralWidget(m_mapView);
     m_edit = new MapEditController(m_ctx.scenario(), *m_mapView, *m_mapScene, this);
+    connect(&m_ctx.engine(), &SimulationEngine::snapshotReady, m_mapScene, &MapScene::applySnapshot);
 }
 
 QDockWidget* MainWindow::makeDock(const QString& title, const QString& objectName, QWidget* content,
@@ -125,7 +128,8 @@ void MainWindow::setupDocks()
     m_objectPanel = new ObjectPanel(m_ctx.scenario(), *m_edit, m_ctx.logger());
     m_objectDock = makeDock(QStringLiteral("오브젝트"), QStringLiteral("ObjectDock"), m_objectPanel,
                             Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-    m_controlDock = makeDock(QStringLiteral("제어"), QStringLiteral("ControlDock"), new ControlPanel,
+    m_controlDock = makeDock(QStringLiteral("제어"), QStringLiteral("ControlDock"),
+                             new ControlPanel(m_ctx.mission(), m_ctx.engine(), m_ctx.scenario()),
                              Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     m_logDock = makeDock(QStringLiteral("로그"), QStringLiteral("LogDock"), new LogPanel(m_ctx.logModel()),
                          Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea);
@@ -147,6 +151,9 @@ void MainWindow::setupStatusBar()
     m_scaleLabel = new QLabel(this);
     m_scaleLabel->setMinimumWidth(110);
     statusBar()->addWidget(m_stateLabel);
+    connect(&m_ctx.engine(), &SimulationEngine::stateChanged, this, [this](SimState st) {
+        m_stateLabel->setText(QStringLiteral("상태: %1").arg(toDisplayString(st)));
+    });
     statusBar()->addPermanentWidget(m_scaleLabel);
     statusBar()->addPermanentWidget(m_cursorLabel);
 

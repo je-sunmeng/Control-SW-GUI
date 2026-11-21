@@ -47,6 +47,26 @@ qt_add_library(ctrlsw_core STATIC
     persistence/JsonSerializer.cpp
     persistence/ObjectFileIO.h
     persistence/ObjectFileIO.cpp
+
+    sim/SimClock.h
+    sim/SimClock.cpp
+    sim/SimSnapshot.h
+    sim/RouteKinematics.h
+    sim/RouteKinematics.cpp
+    sim/RadarScanner.h
+    sim/RadarScanner.cpp
+    sim/FalseTargetGenerator.h
+    sim/FalseTargetGenerator.cpp
+    sim/IDetectionSource.h
+    sim/LocalDetectionSource.h
+    sim/LocalDetectionSource.cpp
+    sim/ExternalDetectionSource.h
+    sim/ExternalDetectionSource.cpp
+    sim/SimulationEngine.h
+    sim/SimulationEngine.cpp
+
+    mission/MissionController.h
+    mission/MissionController.cpp
 )
 target_include_directories(ctrlsw_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ctrlsw_core PUBLIC Qt6::Core Qt6::Gui)
@@ -91,6 +111,16 @@ qt_add_library(ctrlsw_gui STATIC
     map/items/RouteItem.cpp
     map/items/FalseTargetItem.h
     map/items/FalseTargetItem.cpp
+    map/items/RadarBeamItem.h
+    map/items/RadarBeamItem.cpp
+    map/items/PlatformItem.h
+    map/items/PlatformItem.cpp
+    map/items/DetectionMarkItem.h
+    map/items/DetectionMarkItem.cpp
+    map/items/RandomGhostItem.h
+    map/items/RandomGhostItem.cpp
+    map/items/NoiseSectorItem.h
+    map/items/NoiseSectorItem.cpp
 
     ui/ObjectPanel.h
     ui/ObjectPanel.cpp
@@ -121,6 +151,18 @@ qt_add_library(ctrlsw_gui STATIC
     ui/dialogs/FalseTargetTypeDialog.cpp
     ui/ControlPanel.h
     ui/ControlPanel.cpp
+    ui/LampIndicator.h
+    ui/LampIndicator.cpp
+    ui/ModeSelector.h
+    ui/ModeSelector.cpp
+    ui/DeviceStatusWidget.h
+    ui/DeviceStatusWidget.cpp
+    ui/MainLobeLampWidget.h
+    ui/MainLobeLampWidget.cpp
+    ui/SimControlWidget.h
+    ui/SimControlWidget.cpp
+    ui/SpeedSelector.h
+    ui/SpeedSelector.cpp
     ui/LogPanel.h
     ui/LogPanel.cpp
 )

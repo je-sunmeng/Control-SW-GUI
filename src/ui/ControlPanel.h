@@ -2,11 +2,33 @@
 
 #include <QWidget>
 
-// 우측 제어 패널 컨테이너
-//  ModeSelector / DeviceStatus / MainLobe Lamp / SimControl / SpeedSelector
-// M1: 섹션 골격만 배치. 각 위젯은 M4(단독), M5(연동)에서 구현 후 교체.
+class MissionController;
+class ScenarioModel;
+class SimulationEngine;
+class ModeSelector;
+class DeviceStatusWidget;
+class MainLobeLampWidget;
+class SimControlWidget;
+class SpeedSelector;
+
+// 우측 제어 패널: 모드 / 장치 연결 상태 / MainLobe 램프 / 시뮬레이션 제어 / 배속
 class ControlPanel : public QWidget {
     Q_OBJECT
 public:
-    explicit ControlPanel(QWidget* parent = nullptr);
+    ControlPanel(MissionController& mission, SimulationEngine& engine, ScenarioModel& model, QWidget* parent = nullptr);
+
+    DeviceStatusWidget* deviceStatus() const { return m_devices; }
+
+private:
+    void onStart();
+    void onRefresh();
+    void syncFromController();
+
+    MissionController& m_mission;
+    SimulationEngine& m_engine;
+    ModeSelector* m_mode;
+    DeviceStatusWidget* m_devices;
+    MainLobeLampWidget* m_lamps;
+    SimControlWidget* m_control;
+    SpeedSelector* m_speed;
 };
