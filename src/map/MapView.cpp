@@ -129,12 +129,31 @@ void MapView::mousePressEvent(QMouseEvent* event)
         event->accept();
         return;
     }
-    QGraphicsView::mousePressEvent(event);
-    if (event->button() == Qt::LeftButton && !event->isAccepted())
+    if (event->button() == Qt::LeftButton) {
+        if (!m_editMode)
+            QGraphicsView::mousePressEvent(event);   // 핸들 드래그/선택
         event->accept();
-    if (event->button() == Qt::LeftButton)
         emit mapClicked(m_mapScene->projection().toGeo(mapToScene(event->position().toPoint())), Qt::LeftButton,
                         event->modifiers());
+        return;
+    }
+    QGraphicsView::mousePressEvent(event);
+}
+
+void MapView::mouseDoubleClickEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton && m_editMode) {
+        emit mapDoubleClicked(m_mapScene->projection().toGeo(mapToScene(event->position().toPoint())));
+        event->accept();
+        return;
+    }
+    QGraphicsView::mouseDoubleClickEvent(event);
+}
+
+void MapView::setEditMode(bool on)
+{
+    m_editMode = on;
+    viewport()->setCursor(on ? Qt::CrossCursor : Qt::ArrowCursor);
 }
 
 void MapView::mouseMoveEvent(QMouseEvent* event)
@@ -146,6 +165,7 @@ void MapView::mouseMoveEvent(QMouseEvent* event)
             viewport()->setCursor(Qt::ClosedHandCursor);
         }
         if (m_panMoved) {
+            // 이동 중에는 손 커서, 끝나면 모드별 커서로 복귀
             const QPoint d = pos - m_panLast;
             horizontalScrollBar()->setValue(horizontalScrollBar()->value() - d.x());
             verticalScrollBar()->setValue(verticalScrollBar()->value() - d.y());
@@ -161,7 +181,7 @@ void MapView::mouseReleaseEvent(QMouseEvent* event)
 {
     if (m_panning && event->button() == m_panButton) {
         m_panning = false;
-        viewport()->unsetCursor();
+        viewport()->setCursor(m_editMode ? Qt::CrossCursor : Qt::ArrowCursor);
         if (!m_panMoved)
             emit mapClicked(m_mapScene->projection().toGeo(mapToScene(event->position().toPoint())),
                             event->button(), event->modifiers());
@@ -189,6 +209,13 @@ void MapView::keyPressEvent(QKeyEvent* event)
         return;
     case Qt::Key_Minus:
         zoomBy(1 / 1.25);
+        return;
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+    case Qt::Key_Escape:
+    case Qt::Key_Backspace:
+        emit editKeyPressed(event->key());
+        event->accept();
         return;
     default:
         QGraphicsView::keyPressEvent(event);

@@ -1,13 +1,19 @@
 #pragma once
 
+#include "common/Types.h"
+
 #include <QGraphicsScene>
 #include <QHash>
 
 class MapLayerManager;
 class MapProjection;
-class GraticuleLayer;
+class MapObjectItem;
+class ScenarioModel;
 
-// 지도 Scene: 배경 레이어 아이템 관리 (M3 이후 오브젝트 아이템, M4 이후 런타임 아이템 추가)
+// 지도 Scene
+//  - 배경 레이어 아이템 (MapLayerManager 표시 여부 연동)
+//  - ScenarioModel 시그널 구독 → 오브젝트별 아이템 생성/갱신/삭제
+//  - 핸들 드래그 → ScenarioModel 편집 API 호출 (실시간 반영, 잠금 시 드래그 불가)
 class MapScene : public QGraphicsScene {
     Q_OBJECT
 public:
@@ -17,15 +23,36 @@ public:
 
     MapScene(MapLayerManager& layers, const MapProjection& proj, QObject* parent = nullptr);
 
+    void setScenario(ScenarioModel* model);
+
     const MapProjection& projection() const { return m_proj; }
     MapLayerManager& layerManager() const { return m_layers; }
     QRectF dataRect() const { return m_dataRect; }
 
+    MapObjectItem* objectItem(ObjectId id) const { return m_objectItems.value(id); }
+    ObjectId highlightedObject() const { return m_highlighted; }
+
+public slots:
+    void setHighlightedObject(ObjectId id);
+
+signals:
+    // 지도에서 오브젝트 핸들을 눌렀을 때
+    void objectClicked(ObjectId id);
+
 private:
     void onLayerVisibilityChanged(const QString& id, bool visible);
+    void onObjectAdded(ObjectId id);
+    void onObjectChanged(ObjectId id);
+    void onObjectRemoved(ObjectId id);
+    void rebuildObjects();
+    MapObjectItem* createItem(ObjectId id);
 
     MapLayerManager& m_layers;
     const MapProjection& m_proj;
     QRectF m_dataRect;
     QHash<QString, QGraphicsItem*> m_layerItems;
+
+    ScenarioModel* m_model = nullptr;
+    QHash<ObjectId, MapObjectItem*> m_objectItems;
+    ObjectId m_highlighted = 0;
 };

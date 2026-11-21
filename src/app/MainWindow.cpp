@@ -4,6 +4,8 @@
 #include "common/Types.h"
 #include "log/LogTableModel.h"
 #include "log/Logger.h"
+#include "model/ScenarioModel.h"
+#include "map/MapEditController.h"
 #include "map/MapLayerManager.h"
 #include "map/MapScene.h"
 #include "map/MapView.h"
@@ -26,7 +28,7 @@
 namespace {
 const QString kGeometryKey = QStringLiteral("mainWindow/geometry");
 const QString kStateKey = QStringLiteral("mainWindow/state");
-constexpr int kLayoutVersion = 1;   // 도크 구성이 바뀌면 증가 → 이전 저장 레이아웃 무시
+constexpr int kLayoutVersion = 2;   // 도크 구성이 바뀌면 증가 → 이전 저장 레이아웃 무시
 } // namespace
 
 MainWindow::MainWindow(AppContext& ctx, QWidget* parent)
@@ -100,8 +102,10 @@ void MainWindow::setupToolBar()
 void MainWindow::setupCentral()
 {
     m_mapScene = new MapScene(m_ctx.mapLayers(), m_ctx.projection(), this);
+    m_mapScene->setScenario(&m_ctx.scenario());
     m_mapView = new MapView(m_mapScene, this);
     setCentralWidget(m_mapView);
+    m_edit = new MapEditController(m_ctx.scenario(), *m_mapView, *m_mapScene, this);
 }
 
 QDockWidget* MainWindow::makeDock(const QString& title, const QString& objectName, QWidget* content,
@@ -118,7 +122,8 @@ QDockWidget* MainWindow::makeDock(const QString& title, const QString& objectNam
 
 void MainWindow::setupDocks()
 {
-    m_objectDock = makeDock(QStringLiteral("오브젝트"), QStringLiteral("ObjectDock"), new ObjectPanel,
+    m_objectPanel = new ObjectPanel(m_ctx.scenario(), *m_edit, m_ctx.logger());
+    m_objectDock = makeDock(QStringLiteral("오브젝트"), QStringLiteral("ObjectDock"), m_objectPanel,
                             Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     m_controlDock = makeDock(QStringLiteral("제어"), QStringLiteral("ControlDock"), new ControlPanel,
                              Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
@@ -128,6 +133,10 @@ void MainWindow::setupDocks()
     addDockWidget(Qt::LeftDockWidgetArea, m_objectDock);
     addDockWidget(Qt::RightDockWidgetArea, m_controlDock);
     addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
+
+    // 목록 선택 ↔ 지도 하이라이트
+    connect(m_objectPanel, &ObjectPanel::objectSelected, m_mapScene, &MapScene::setHighlightedObject);
+    connect(m_mapScene, &MapScene::objectClicked, m_objectPanel, &ObjectPanel::selectObject);
 }
 
 void MainWindow::setupStatusBar()
@@ -146,6 +155,9 @@ void MainWindow::setupStatusBar()
                                    .arg(std::abs(p.lat), 0, 'f', 4).arg(p.lat >= 0 ? 'N' : 'S')
                                    .arg(std::abs(p.lon), 0, 'f', 4).arg(p.lon >= 0 ? 'E' : 'W'));
     });
+    connect(m_edit, &MapEditController::hintChanged, this, [this](const QString& hint) {
+        hint.isEmpty() ? statusBar()->clearMessage() : statusBar()->showMessage(hint);
+    });
     connect(m_mapView, &MapView::cursorLeft, this, [this] { m_cursorLabel->setText(QStringLiteral("위도 -  경도 -")); });
     connect(m_mapView, &MapView::scaleChanged, this, [this](double ppk) {
         m_scaleLabel->setText(QStringLiteral("배율 %1 px/km").arg(ppk, 0, 'f', ppk < 1 ? 2 : 1));
@@ -154,7 +166,7 @@ void MainWindow::setupStatusBar()
 
 void MainWindow::applyDefaultLayout()
 {
-    resizeDocks({m_objectDock, m_controlDock}, {320, 260}, Qt::Horizontal);
+    resizeDocks({m_objectDock, m_controlDock}, {380, 260}, Qt::Horizontal);
     resizeDocks({m_logDock}, {220}, Qt::Vertical);
 }
 

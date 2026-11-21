@@ -2,6 +2,8 @@
 #include "app/MainWindow.h"
 #include "log/Logger.h"
 #include "map/MapView.h"
+#include "model/ScenarioModel.h"
+#include "persistence/ObjectFileIO.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -39,6 +41,9 @@ int main(int argc, char* argv[])
                                QStringLiteral("시작 시 지도 배율을 <px/km>로 설정 (개발용, 한반도 중심 기준)"),
                                QStringLiteral("pxPerKm"));
     parser.addOption(zoomOpt);
+    QCommandLineOption scenarioOpt(QStringLiteral("scenario"), QStringLiteral("시작 시 시나리오 파일(*.scenario.json) 불러오기"),
+                                   QStringLiteral("file"));
+    parser.addOption(scenarioOpt);
     parser.process(app);
 
     applyStyle(app);
@@ -46,6 +51,16 @@ int main(int argc, char* argv[])
     AppContext ctx;
     MainWindow window(ctx);
     window.show();
+
+    if (parser.isSet(scenarioOpt)) {
+        QString err;
+        if (const auto data = ObjectFileIO::loadScenario(parser.value(scenarioOpt), &err)) {
+            ctx.scenario().replaceAll(*data);
+            ctx.logger().info(QStringLiteral("시나리오 불러오기: %1").arg(parser.value(scenarioOpt)), QStringLiteral("Scenario"));
+        } else {
+            ctx.logger().error(QStringLiteral("시나리오 불러오기 실패: %1").arg(err), QStringLiteral("Scenario"));
+        }
+    }
 
     if (parser.isSet(zoomOpt)) {
         const double target = parser.value(zoomOpt).toDouble();

@@ -1,0 +1,44 @@
+{
+    "schemaVersion": 1,
+    "kind": "scenario",
+    "datalinkIntervalSec": 1.0,
+    "radars": [
+        { "name": "R1", "lat": 38.05, "lon": 125.70, "freqMHz": 9400, "priMs": 1.0, "pwUs": 1.0,
+          "maxRangeKm": 250, "scanPeriodSec": 10, "scanDir": "CW", "beamWidthDeg": 2.0 },
+        { "name": "R2", "lat": 39.03, "lon": 125.75, "freqMHz": 3000, "priMs": 2.5, "pwUs": 4.0,
+          "maxRangeKm": 300, "scanPeriodSec": 12, "scanDir": "CW", "beamWidthDeg": 1.5 },
+        { "name": "R3", "lat": 39.15, "lon": 127.44, "freqMHz": 5600, "priMs": 1.5, "pwUs": 2.0,
+          "maxRangeKm": 220, "scanPeriodSec": 8, "scanDir": "CCW", "beamWidthDeg": 2.5 }
+    ],
+    "jammer": {
+        "name": "전자전기",
+        "route": {
+            "waypoints": [ { "lat": 37.05, "lon": 125.40 }, { "lat": 37.35, "lon": 126.10 },
+                           { "lat": 37.60, "lon": 127.30 }, { "lat": 37.75, "lon": 128.40 } ],
+            "segments": [ { "altitudeKm": 9.0, "speedMps": 220 }, { "altitudeKm": 9.0, "speedMps": 220 },
+                          { "altitudeKm": 9.5, "speedMps": 230 } ]
+        }
+    },
+    "formation": {
+        "name": "아군편대",
+        "formationSize": 4,
+        "route": {
+            "waypoints": [ { "lat": 36.60, "lon": 126.90 }, { "lat": 37.40, "lon": 126.60 },
+                           { "lat": 38.30, "lon": 126.40 } ],
+            "segments": [ { "altitudeKm": 6.0, "speedMps": 250 }, { "altitudeKm": 5.0, "speedMps": 260 } ]
+        },
+        "jamming": {
+            "falseTargets": [ { "angleDeg": 45, "distanceKm": 10 }, { "angleDeg": 315, "distanceKm": 10 },
+                              { "angleDeg": 90, "distanceKm": 20 } ],
+            "noiseBandwidthMHz": 20
+        }
+    },
+    "falseTargets": [
+        { "name": "FT1", "type": "Fixed", "lat": 38.30, "lon": 125.10 },
+        { "name": "FT2", "type": "Moving",
+          "route": { "waypoints": [ { "lat": 37.20, "lon": 124.60 }, { "lat": 37.90, "lon": 124.90 } ],
+                     "segments": [ { "altitudeKm": 3.0, "speedMps": 150 } ] } },
+        { "name": "FT3", "type": "Noise", "lat": 38.00, "lon": 128.70, "detectAngleDeg": 12 },
+        { "name": "FT4", "type": "Random" }
+    ]
+}

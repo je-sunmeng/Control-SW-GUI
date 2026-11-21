@@ -19,6 +19,10 @@ public:
     explicit MapView(MapScene* scene, QWidget* parent = nullptr);
 
     double pxPerKm() const;
+
+    // 편집 모드: 왼쪽 클릭이 아이템(핸들)으로 전달되지 않고 mapClicked 로만 전달, 십자 커서
+    void setEditMode(bool on);
+    bool isEditMode() const { return m_editMode; }
     void zoomBy(double factor);
     void zoomBy(double factor, const QPoint& viewportAnchor);
 
@@ -29,6 +33,8 @@ signals:
     void cursorGeoChanged(const GeoPoint& pos);
     void cursorLeft();
     void mapClicked(const GeoPoint& pos, Qt::MouseButton button, Qt::KeyboardModifiers modifiers);
+    void mapDoubleClicked(const GeoPoint& pos);
+    void editKeyPressed(int key);   // Enter/Return/Escape/Backspace (편집 컨트롤러용)
     void scaleChanged(double pxPerKm);
 
 protected:
@@ -36,6 +42,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void showEvent(QShowEvent* event) override;
@@ -51,6 +58,7 @@ private:
 
     MapScene* m_mapScene;
     bool m_initialFit = false;
+    bool m_editMode = false;
     bool m_panning = false;
     bool m_panMoved = false;
     Qt::MouseButton m_panButton = Qt::NoButton;

@@ -8,6 +8,9 @@ qt_add_library(ctrlsw_core STATIC
     common/Types.cpp
     common/GeoUtils.h
     common/GeoUtils.cpp
+    common/IdGenerator.h
+    common/ColorPalette.h
+    common/ColorPalette.cpp
 
     log/LogEntry.h
     log/LogEntry.cpp
@@ -24,6 +27,26 @@ qt_add_library(ctrlsw_core STATIC
     map/VectorLayer.cpp
     map/MapLayerManager.h
     map/MapLayerManager.cpp
+
+    model/SimObject.h
+    model/SimObject.cpp
+    model/Route.h
+    model/Route.cpp
+    model/Radar.h
+    model/Radar.cpp
+    model/JammerAircraft.h
+    model/JammingConfig.h
+    model/JammingConfig.cpp
+    model/FriendlyFormation.h
+    model/StandaloneFalseTarget.h
+    model/StandaloneFalseTarget.cpp
+    model/ScenarioModel.h
+    model/ScenarioModel.cpp
+
+    persistence/JsonSerializer.h
+    persistence/JsonSerializer.cpp
+    persistence/ObjectFileIO.h
+    persistence/ObjectFileIO.cpp
 )
 target_include_directories(ctrlsw_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ctrlsw_core PUBLIC Qt6::Core Qt6::Gui)
@@ -39,11 +62,9 @@ qt_add_resources(ctrlsw_core "mapdata"
 )
 
 # ---------------------------------------------------------------------------
-# CtrlSW : GUI 실행 파일 (app, ui)
+# ctrlsw_gui : Widgets 계층 (app, map 전시/편집, ui) → 실행 파일 + 위젯 테스트에서 링크
 # ---------------------------------------------------------------------------
-qt_add_executable(CtrlSW
-    main.cpp
-
+qt_add_library(ctrlsw_gui STATIC
     app/AppContext.h
     app/AppContext.cpp
     app/MainWindow.h
@@ -57,19 +78,62 @@ qt_add_executable(CtrlSW
     map/MapScene.cpp
     map/MapView.h
     map/MapView.cpp
+    map/MapEditController.h
+    map/MapEditController.cpp
     map/items/VectorLayerItem.h
     map/items/VectorLayerItem.cpp
+    map/items/MapObjectItem.h
+    map/items/WaypointHandleItem.h
+    map/items/WaypointHandleItem.cpp
+    map/items/RadarItem.h
+    map/items/RadarItem.cpp
+    map/items/RouteItem.h
+    map/items/RouteItem.cpp
+    map/items/FalseTargetItem.h
+    map/items/FalseTargetItem.cpp
 
     ui/ObjectPanel.h
     ui/ObjectPanel.cpp
+    ui/ObjectActionBar.h
+    ui/ObjectActionBar.cpp
+    ui/ObjectTreeModel.h
+    ui/ObjectTreeModel.cpp
+    ui/ObjectListView.h
+    ui/ObjectListView.cpp
+    ui/editors/EditorUtil.h
+    ui/editors/ObjectEditorBase.h
+    ui/editors/ObjectEditorBase.cpp
+    ui/editors/ObjectEditorStack.h
+    ui/editors/ObjectEditorStack.cpp
+    ui/editors/RouteSegmentTable.h
+    ui/editors/RouteSegmentTable.cpp
+    ui/editors/RadarEditor.h
+    ui/editors/RadarEditor.cpp
+    ui/editors/JammerEditor.h
+    ui/editors/JammerEditor.cpp
+    ui/editors/FormationEditor.h
+    ui/editors/FormationEditor.cpp
+    ui/editors/JammingConfigEditor.h
+    ui/editors/JammingConfigEditor.cpp
+    ui/editors/FalseTargetEditor.h
+    ui/editors/FalseTargetEditor.cpp
+    ui/dialogs/FalseTargetTypeDialog.h
+    ui/dialogs/FalseTargetTypeDialog.cpp
     ui/ControlPanel.h
     ui/ControlPanel.cpp
     ui/LogPanel.h
     ui/LogPanel.cpp
+)
+target_link_libraries(ctrlsw_gui PUBLIC ctrlsw_core Qt6::Widgets Qt6::Network)
 
+# ---------------------------------------------------------------------------
+# CtrlSW : GUI 실행 파일
+# ---------------------------------------------------------------------------
+qt_add_executable(CtrlSW
+    main.cpp
     ${PROJECT_SOURCE_DIR}/resources/resources.qrc
 )
-target_link_libraries(CtrlSW PRIVATE ctrlsw_core Qt6::Widgets Qt6::Network)
+target_link_libraries(CtrlSW PRIVATE ctrlsw_gui)
 
 set_target_properties(CtrlSW PROPERTIES
     WIN32_EXECUTABLE ON

@@ -2,6 +2,7 @@
 
 #include "log/LogTableModel.h"
 #include "map/MapLayerManager.h"
+#include "model/ScenarioModel.h"
 #include "log/Logger.h"
 
 #include <QCoreApplication>
@@ -13,6 +14,7 @@ AppContext::AppContext(QObject* parent)
     , m_logger(new Logger(this))
     , m_logModel(new LogTableModel(LogTableModel::DefaultMaxRows, this))
     , m_mapLayers(new MapLayerManager(this))
+    , m_scenario(new ScenarioModel(this))
 {
     connect(m_logger, &Logger::entryAdded, m_logModel, &LogTableModel::append);
     m_logger->installQtMessageHandler();
@@ -34,6 +36,7 @@ AppContext::AppContext(QObject* parent)
 
     m_mapLayers->loadDefaultLayers(m_projection, m_logger);
     m_mapLayers->restoreVisibility();
+    m_scenario->setLogger(m_logger);
 }
 
 AppContext::~AppContext()

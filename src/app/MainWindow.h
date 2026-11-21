@@ -11,6 +11,7 @@ class ControlPanel;
 class LogPanel;
 class MapScene;
 class MapView;
+class MapEditController;
 
 // 전체 레이아웃 조립
 //  상단: MapToolBar / 중앙: 지도 / 좌: ObjectPanel / 우: ControlPanel / 하단: LogPanel
@@ -42,6 +43,8 @@ private:
     MapToolBar* m_mapToolBar = nullptr;
     MapScene* m_mapScene = nullptr;
     MapView* m_mapView = nullptr;
+    MapEditController* m_edit = nullptr;
+    ObjectPanel* m_objectPanel = nullptr;
     QDockWidget* m_objectDock = nullptr;
     QDockWidget* m_controlDock = nullptr;
     QDockWidget* m_logDock = nullptr;

@@ -541,7 +541,7 @@ MainWindow
 2. 실수형 인코딩(f32 vs f64 vs 고정소수점 정수)
 3. 장치 식별 방식: 접속 IP/포트 설정 vs 첫 메시지 Src 코드
 4. MainLobe 탐지결과 메시지에 탐지 위치(위경도/거리·방위) 포함 형태
-5. 전자전기 오브젝트의 저장/불러오기 및 데이터링크 전송간격 저장 위치
+5. ~~전자전기 오브젝트의 저장/불러오기 및 데이터링크 전송간격 저장 위치~~ → `*.jammer.json`, `*.scenario.json`에 포함 (2026-11-22)
 6. 새로고침 시 설정된 오브젝트 유지 여부
 7. MainLobe 수신 램프 점등 시간/방식(펄스 vs 래치)
 8. 동선 종료 이후 이동체 처리(정지/소멸/루프)
@@ -554,4 +554,6 @@ MainWindow
 | 2026-11-20 | 아군편대 허위타겟 이격거리는 **고정** |
 | 2026-11-20 | 연동모드 탐지결과 = 신호발생장치로부터 **수신한 MainLobe 탐지결과 메시지** |
 | 2026-11-21 | 지도 데이터는 Natural Earth 10m 단일 출처(Public Domain), Python 표준 라이브러리 전처리(`tools/map_prep`). 군사분계선·DMZ도 Natural Earth 사용, 한반도 주요 산은 직접 입력. 시군구(`kr_admin2`)는 보류 |
+| 2026-11-22 | M3 구현 세부: `StandaloneFalseTarget.posSet`(위치 미지정 상태), `ScenarioModel::renameObject`, 전자전기 저장/불러오기 및 `*.scenario.json`(데이터링크 간격 포함) 구현 → TBD 5 해소. 항목별 불러오기는 기존 항목 **교체** |
+| 2026-11-22 | 빌드 구조: `ctrlsw_core`(비UI) / `ctrlsw_gui`(Widgets) 정적 라이브러리 + `CtrlSW` 실행파일. 위젯 테스트(`tst_MapEdit`)는 offscreen 실행 |
 | 2026-11-21 | Scene 좌표 1 단위 ≈ 1 km (`k = 111.32`), 지도 배율 단위 px/km. 축소(0.6 px/km 미만) 시 단순화 경로 사용 |

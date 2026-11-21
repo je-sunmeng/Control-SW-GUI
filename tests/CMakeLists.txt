@@ -6,7 +6,17 @@ function(ctrlsw_add_test name)
     set_tests_properties(${name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 
+# 위젯(지도 편집 등) 테스트: ctrlsw_gui 링크, offscreen 플랫폼
+function(ctrlsw_add_gui_test name)
+    ctrlsw_add_test(${name})
+    target_link_libraries(${name} PRIVATE ctrlsw_gui)
+endfunction()
+
 ctrlsw_add_test(tst_GeoUtils)
 ctrlsw_add_test(tst_Logger)
 ctrlsw_add_test(tst_MapProjection)
 ctrlsw_add_test(tst_VectorLayer)
+ctrlsw_add_test(tst_Route)
+ctrlsw_add_test(tst_ScenarioModel)
+ctrlsw_add_test(tst_JsonSerializer)
+ctrlsw_add_gui_test(tst_MapEdit)

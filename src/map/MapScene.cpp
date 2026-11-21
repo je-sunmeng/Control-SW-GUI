@@ -4,11 +4,22 @@
 #include "MapLayerManager.h"
 #include "MapProjection.h"
 #include "VectorLayer.h"
+#include "common/ColorPalette.h"
+#include "items/FalseTargetItem.h"
+#include "items/RadarItem.h"
+#include "items/RouteItem.h"
 #include "items/VectorLayerItem.h"
+#include "items/WaypointHandleItem.h"
+#include "model/ScenarioModel.h"
 
 namespace {
 constexpr qreal kGraticuleZ = 3.0;   // 육지 채움(0,1) 위, 선 레이어(4~) 아래
-}
+// 오브젝트는 모든 지도 레이어(최대 11) 위
+constexpr qreal kRadarZ = 20.0;
+constexpr qreal kRouteZ = 30.0;
+constexpr qreal kFalseTargetZ = 35.0;
+constexpr qreal kHighlightBoost = 5.0;
+} // namespace
 
 MapScene::MapScene(MapLayerManager& layers, const MapProjection& proj, QObject* parent)
     : QGraphicsScene(parent)
@@ -16,7 +27,7 @@ MapScene::MapScene(MapLayerManager& layers, const MapProjection& proj, QObject* 
     , m_proj(proj)
     , m_dataRect(proj.sceneRect(MinLat, MinLon, MaxLat, MaxLon))
 {
-    // 정적 배경 위주이므로 BSP 인덱스 대신 NoIndex (아이템 수가 적고 이후 동적 아이템이 많아짐)
+    // 아이템 수가 적고 이후 동적 아이템이 많아지므로 BSP 인덱스 대신 NoIndex
     setItemIndexMethod(QGraphicsScene::NoIndex);
     setSceneRect(m_dataRect.adjusted(-SceneMarginKm, -SceneMarginKm, SceneMarginKm, SceneMarginKm));
 
@@ -41,4 +52,133 @@ void MapScene::onLayerVisibilityChanged(const QString& id, bool visible)
 {
     if (QGraphicsItem* item = m_layerItems.value(id))
         item->setVisible(visible);
+}
+
+// ---------------------------------------------------------------------------- 오브젝트
+
+void MapScene::setScenario(ScenarioModel* model)
+{
+    if (m_model)
+        disconnect(m_model, nullptr, this, nullptr);
+    m_model = model;
+    if (m_model) {
+        connect(m_model, &ScenarioModel::objectAdded, this, &MapScene::onObjectAdded);
+        connect(m_model, &ScenarioModel::objectChanged, this, &MapScene::onObjectChanged);
+        connect(m_model, &ScenarioModel::objectRemoved, this, &MapScene::onObjectRemoved);
+        connect(m_model, &ScenarioModel::scenarioReset, this, &MapScene::rebuildObjects);
+        connect(m_model, &ScenarioModel::lockedChanged, this, [this](bool locked) {
+            for (MapObjectItem* item : std::as_const(m_objectItems))
+                item->setEditable(!locked);
+        });
+    }
+    rebuildObjects();
+}
+
+void MapScene::rebuildObjects()
+{
+    for (MapObjectItem* item : std::as_const(m_objectItems)) {
+        removeItem(item);
+        delete item;
+    }
+    m_objectItems.clear();
+    m_highlighted = 0;
+    if (!m_model)
+        return;
+    for (ObjectId id : m_model->objectIds())
+        onObjectAdded(id);
+}
+
+MapObjectItem* MapScene::createItem(ObjectId id)
+{
+    const auto type = m_model->objectType(id);
+    if (!type)
+        return nullptr;
+    ScenarioModel* model = m_model;
+    const MapProjection& proj = m_proj;
+    auto pressed = [this, id] { emit objectClicked(id); };
+
+    switch (*type) {
+    case ObjectType::Radar: {
+        auto* item = new RadarItem(id, proj);
+        item->setZValue(kRadarZ);
+        item->handle()->setPressCallback(pressed);
+        item->handle()->setMoveCallback([model, &proj, id](const QPointF& p, bool) {
+            model->moveRadar(id, proj.toGeo(p));
+        });
+        return item;
+    }
+    case ObjectType::Jammer:
+    case ObjectType::Formation:
+    case ObjectType::StandaloneFalseTarget: {
+        if (*type == ObjectType::StandaloneFalseTarget) {
+            const StandaloneFalseTarget* t = model->falseTarget(id);
+            if (t->ftType == FalseTargetType::Random)
+                return nullptr;   // 지도 전시 대상 아님 (M4 에서 고스트로 전시)
+            if (t->usesPosition()) {
+                auto* item = new FalseTargetItem(id, proj, t->ftType);
+                item->setZValue(kFalseTargetZ);
+                item->handle()->setPressCallback(pressed);
+                item->handle()->setMoveCallback([model, &proj, id](const QPointF& p, bool) {
+                    model->setPointPosition(id, proj.toGeo(p));
+                });
+                return item;
+            }
+        }
+        const QColor color = *type == ObjectType::Jammer      ? ColorPalette::jammer()
+                             : *type == ObjectType::Formation ? ColorPalette::formation()
+                                                              : ColorPalette::falseTarget();
+        auto* item = new RouteItem(id, proj, color,
+                                   *type == ObjectType::StandaloneFalseTarget ? Qt::DashLine : Qt::SolidLine);
+        item->setZValue(kRouteZ);
+        item->setCallbacks(
+            [model, &proj, id](int index, const QPointF& p, bool) { model->moveWaypoint(id, index, proj.toGeo(p)); },
+            pressed);
+        return item;
+    }
+    }
+    return nullptr;
+}
+
+void MapScene::onObjectAdded(ObjectId id)
+{
+    if (!m_model || m_objectItems.contains(id))
+        return;
+    MapObjectItem* item = createItem(id);
+    if (!item)
+        return;
+    item->setEditable(!m_model->isLocked());
+    item->sync(*m_model);
+    addItem(item);
+    m_objectItems.insert(id, item);
+}
+
+void MapScene::onObjectChanged(ObjectId id)
+{
+    if (MapObjectItem* item = m_objectItems.value(id))
+        item->sync(*m_model);
+}
+
+void MapScene::onObjectRemoved(ObjectId id)
+{
+    if (m_highlighted == id)
+        m_highlighted = 0;
+    if (MapObjectItem* item = m_objectItems.take(id)) {
+        removeItem(item);
+        delete item;
+    }
+}
+
+void MapScene::setHighlightedObject(ObjectId id)
+{
+    if (id == m_highlighted)
+        return;
+    if (MapObjectItem* old = m_objectItems.value(m_highlighted)) {
+        old->setHighlighted(false);
+        old->setZValue(old->zValue() - kHighlightBoost);
+    }
+    m_highlighted = id;
+    if (MapObjectItem* item = m_objectItems.value(id)) {
+        item->setHighlighted(true);
+        item->setZValue(item->zValue() + kHighlightBoost);
+    }
 }
