@@ -106,11 +106,19 @@ jobs:
               Write-Host ("{0,-40} {1}" -f $d, $(if ($found) { 'ok' } else { 'MISSING' }))
             }
           }
-          $env:QT_PLUGIN_PATH = "$env:QT_ROOT_DIR\plugins"   # 헤드리스용 offscreen 플러그인
-          $env:QT_QPA_PLATFORM = "offscreen"
           $code = Invoke-Timed 'deploy\ctrlsw_mock.exe' @('--version') 30
           if ($code -ne 0) { throw "ctrlsw_mock exit $code" }
-          $code = Invoke-Timed 'deploy\CtrlSW.exe' @('--scenario', 'deploy\samples\demo.scenario.json', '--start', '--speed', '8', '--screenshot', 'smoke.png', '--screenshot-delay', '3000') 90
+          $appArgs = @('--scenario', 'deploy\samples\demo.scenario.json', '--start', '--speed', '8', '--screenshot', 'smoke.png', '--screenshot-delay', '3000')
+          # 1차: 배포 폴더의 실제 qwindows 플랫폼 (ThinkPad 실행과 동일 경로, 시스템 한글 폰트 사용)
+          $code = -1
+          try { $code = Invoke-Timed 'deploy\CtrlSW.exe' $appArgs 90 } catch { Write-Host $_ }
+          if ($code -ne 0) {
+            # 2차: 데스크톱 세션이 없는 러너 대비 offscreen (Qt 설치본 플러그인, 폰트 없음)
+            Write-Host "::warning::qwindows 실행 실패 → offscreen 으로 재시도"
+            $env:QT_PLUGIN_PATH = "$env:QT_ROOT_DIR\plugins"
+            $env:QT_QPA_PLATFORM = "offscreen"
+            $code = Invoke-Timed 'deploy\CtrlSW.exe' $appArgs 90
+          }
           if ($code -ne 0) { throw "CtrlSW exit $code" }
           if (-not (Test-Path smoke.png)) { throw "screenshot missing" }
 
