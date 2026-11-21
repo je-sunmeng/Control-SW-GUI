@@ -15,7 +15,7 @@ Make Gui by Qt
 | M3 | ✅ 완료 | 시나리오 모델(레이다/전자전기/아군편대/단독허위표적), 오브젝트 목록·설정 에디터, 지도 편집(배치·동선 그리기·핸들 드래그), 항목별/시나리오 저장·불러오기 |
 | M4 | ✅ 완료 | 단독모드 시뮬레이션: 이동체(대권 보간), 빔 회전(MainLobe 동기화·sinc² 로브·잔상), 편대 허위타겟, 자체 탐지 판정, 랜덤 고스트, 잡음섹터, 배속, 시작/일시정지/재개/중지/새로고침 |
 | M5 | ✅ 완료 | 네트워크·연동모드: TCP 서버, 프레임(BigEndian 헤더 8B), `protocol.json` 매핑, 메시지 10종, 장치 식별·연결 상태, 임무전송/START/STOP, 위치 주기송신, MainLobe 수신 → 빔 동기화·탐지 전시 ([ICD 초안](docs/ICD.md)) |
-| M6 | ⏳ | 모의 클라이언트(분석SW/신호발생장치 에뮬레이터), Windows 빌드/배포 점검 |
+| M6 | ✅ 완료 | 모의 클라이언트 `ctrlsw_mock`(분석SW/신호발생장치 에뮬레이터), GitHub Actions: Windows(MSVC)·macOS × Qt 6.8 LTS 빌드·테스트, windeployqt 배포 아티팩트 |
 
 ## 빌드
 
@@ -36,8 +36,14 @@ set QT_PREFIX=C:\Qt\6.8.3\msvc2022_64
 cmake --preset windows-msvc
 cmake --build --preset windows-release
 ctest --preset windows-debug
-%QT_PREFIX%\bin\windeployqt build\windows-msvc\src\Release\CtrlSW.exe
+%QT_PREFIX%\bin\windeployqt build\windows-msvc\Release\CtrlSW.exe
 ```
+
+### Windows 배포본 (CI 아티팩트)
+
+GitHub → Actions → `build` 실행 결과의 **`CtrlSW-windows-x64`** 아티팩트를 받아 압축을 풀면
+`CtrlSW.exe`, `ctrlsw_mock.exe`, Qt DLL, `samples/` 가 포함된 실행 폴더입니다 (Qt 설치 불필요).
+`protocol.json.example` 을 `protocol.json` 으로 이름을 바꿔 두면 Command Code 매핑을 덮어쓸 수 있습니다.
 
 ### 실행 옵션
 
@@ -73,6 +79,18 @@ ctest --preset windows-debug
 | 저장/불러오기 | 항목별 `*.radar.json`, `*.jammer.json`, `*.formation.json`, `*.falsetarget.json`, 전체 `*.scenario.json` (불러오기 = 기존 항목 교체, ID 재발급) |
 
 지도 데이터: [Natural Earth](https://www.naturalearthdata.com/) (Public Domain), 생성 방법은 [tools/map_prep](tools/map_prep/README.md)
+
+## 연동 시험 (모의 클라이언트)
+
+```bash
+# 1) 제어SW 를 연동모드로 실행 (또는 화면에서 [연동] 선택)
+CtrlSW --scenario samples/demo.scenario.json --linked
+# 2) 분석SW + 신호발생장치 에뮬레이터 접속
+ctrlsw_mock --host 127.0.0.1 --port 50021 --device both
+# 3) 제어SW 에서 [임무전송] → [시작]
+#    → 신호발생장치 에뮬레이터가 레이다별 스캔주기마다 MainLobeNotify(+탐지결과) 송신
+```
+`--device analysis|siggen` 으로 한쪽만, 다른 PC 에서 `--host <제어SW IP>` 로 접속 가능. 제어SW 에 `--start` 를 주면 두 장치 연결 시 임무전송·시작을 자동 수행.
 
 ## 프로토콜 (Command Code)
 

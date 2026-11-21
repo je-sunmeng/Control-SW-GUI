@@ -5,7 +5,8 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Qt 6.8 LTS 로 macOS / Windows(MSVC) 빌드 + 전체 Qt Test 실행.
+# Windows(MSVC) = Qt 6.8 LTS (실행 PC 대상, 6.8 호환성 검증) / macOS = Qt 6.10
+#  (Qt 6.8 의 macOS 빌드는 최신 Xcode SDK 에서 제거된 AGL 프레임워크를 링크하려 해 실패하므로 6.10 사용)
 # Windows 는 windeployqt 배포 폴더를 아티팩트로 업로드 (ThinkPad 실행 점검용)
 jobs:
   build:
@@ -15,21 +16,21 @@ jobs:
         include:
           - name: windows-msvc
             os: windows-latest
+            qt_version: "6.8.3"
             qt_arch: win64_msvc2022_64
           - name: macos
             os: macos-latest
+            qt_version: "6.10.1"
             qt_arch: clang_64
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    env:
-      QT_VERSION: "6.8.3"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{ env.QT_VERSION }}
+          version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
           cache: true
 
@@ -65,8 +66,12 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force deploy | Out-Null
-          Copy-Item build/src/CtrlSW.exe deploy/
-          Copy-Item build/tools/mock_client/ctrlsw_mock.exe deploy/
+          # qt_standard_project_setup() 은 Windows 에서 실행파일을 빌드 루트에 모음 → 위치 무관하게 검색
+          $app  = Get-ChildItem build -Recurse -Filter CtrlSW.exe | Select-Object -First 1
+          $mock = Get-ChildItem build -Recurse -Filter ctrlsw_mock.exe | Select-Object -First 1
+          if (-not $app -or -not $mock) { throw "exe not found" }
+          Copy-Item $app.FullName deploy/
+          Copy-Item $mock.FullName deploy/
           Copy-Item -Recurse samples deploy/samples
           Copy-Item resources/protocol/protocol.json deploy/protocol.json.example
           windeployqt --release --no-translations --compiler-runtime deploy/CtrlSW.exe

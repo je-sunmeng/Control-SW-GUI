@@ -1,6 +1,6 @@
 # 전자전기-레이다 시연 GUI (제어 SW) — 파일 및 클래스 설계서
 
-> 상태: **설계 단계 (v0.2)** — 코드/프로젝트 생성은 Macbook에서 프로젝트 경로 지정 후 착수
+> 상태: **M1~M6 구현 완료 (v0.3)** — 남은 일: 10장 TBD 항목(ICD 협의) 반영, 실장비 연동 시험
 > 대상: Qt 6 (C++17), CMake, Widgets + Network
 
 ---
@@ -554,6 +554,7 @@ MainWindow
 | 2026-11-20 | 아군편대 허위타겟 이격거리는 **고정** |
 | 2026-11-20 | 연동모드 탐지결과 = 신호발생장치로부터 **수신한 MainLobe 탐지결과 메시지** |
 | 2026-11-21 | 지도 데이터는 Natural Earth 10m 단일 출처(Public Domain), Python 표준 라이브러리 전처리(`tools/map_prep`). 군사분계선·DMZ도 Natural Earth 사용, 한반도 주요 산은 직접 입력. 시군구(`kr_admin2`)는 보류 |
+| 2026-11-22 | M6: 모의 클라이언트는 core 라이브러리(메시지·판정 로직)를 재사용하는 콘솔 도구 `ctrlsw_mock`. Windows 빌드 점검은 GitHub Actions(Qt 6.8.3, MSVC+Ninja)로 수행, windeployqt 배포 폴더를 아티팩트로 제공 |
 | 2026-11-22 | M5 프로토콜 임시안: 위경도 f64·그 외 f32, 장치 식별 = 첫 프레임 Src(클라이언트는 접속 직후 Heartbeat), MissionStartMsg/MissionStartSigGenMsg 는 목적지 플래그(`withStartPositions`)로 단일 클래스 통합, FormationInfo 는 `hasJamming` 플래그(분석SW 0/신호발생 1). 상세 [ICD.md](ICD.md) |
 | 2026-11-22 | M5 동작: 모드=연동 시 서버 listen, 단독 전환 시 close. 같은 장치 중복 접속 시 이전 연결 종료. 장치 연결 해제 시 임무전송 플래그 초기화(재전송 필요). MainLobeNotify 는 임무 중에만 반영, 알 수 없는 radarId 는 오류 로그 후 무시 |
 | 2026-11-22 | M4 탐지 판정: 틱마다 `|방위−빔방위| ≤ 빔폭/2` 비교 대신 **빔 중심이 직전→현재 방위 호를 통과**했는지로 판정 (8배속 틱당 ~9.5° 회전에도 1회전 1회 탐지 보장, 한 틱에 180° 초과 회전 시 판정 생략) |
