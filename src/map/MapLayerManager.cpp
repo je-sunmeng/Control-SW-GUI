@@ -5,6 +5,8 @@
 #include "log/Logger.h"
 
 #include <QSettings>
+#include <algorithm>
+#include <iterator>
 
 namespace {
 

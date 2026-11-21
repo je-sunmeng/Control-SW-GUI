@@ -1,6 +1,8 @@
 #include "DetectionMarkItem.h"
 
 #include <QPainter>
+#include <algorithm>
+#include <iterator>
 
 DetectionMarkItem::DetectionMarkItem(const QColor& color, double bornAt, double lifetimeSec, QGraphicsItem* parent)
     : QGraphicsItem(parent)

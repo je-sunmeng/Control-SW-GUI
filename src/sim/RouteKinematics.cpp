@@ -1,6 +1,8 @@
 #include "RouteKinematics.h"
 
 #include "common/GeoUtils.h"
+#include <algorithm>
+#include <iterator>
 
 namespace RouteKinematics {
 

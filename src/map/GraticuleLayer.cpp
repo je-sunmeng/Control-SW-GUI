@@ -6,6 +6,8 @@
 #include <QStyleOptionGraphicsItem>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 GraticuleLayer::GraticuleLayer(const MapProjection& proj, double minLat, double minLon, double maxLat,
                                double maxLon, QGraphicsItem* parent)

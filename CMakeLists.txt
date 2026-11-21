@@ -18,6 +18,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 option(CTRLSW_BUILD_TESTS "Build unit tests" ON)
+option(CTRLSW_BUILD_TOOLS "Build tools (mock client)" ON)
 
 if(MSVC)
     add_compile_options(/utf-8 /W4 /permissive-)
@@ -26,6 +27,10 @@ else()
 endif()
 
 add_subdirectory(src)
+
+if(CTRLSW_BUILD_TOOLS OR CTRLSW_BUILD_TESTS)
+    add_subdirectory(tools/mock_client)
+endif()
 
 if(CTRLSW_BUILD_TESTS)
     find_package(Qt6 REQUIRED COMPONENTS Test)

@@ -6,6 +6,8 @@
 #include <QPainter>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 NoiseSectorItem::NoiseSectorItem(const MapProjection& proj, const GeoPoint& radarPos, double rangeKm, double centerDeg,
                                  double widthDeg, const QColor& radarColor, QGraphicsItem* parent)

@@ -9,6 +9,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSet>
+#include <algorithm>
+#include <iterator>
 
 namespace {
 

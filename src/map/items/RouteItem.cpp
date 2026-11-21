@@ -9,6 +9,8 @@
 #include <QStyleOptionGraphicsItem>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 namespace {
 constexpr qreal kLabelMarginKm = 80.0;

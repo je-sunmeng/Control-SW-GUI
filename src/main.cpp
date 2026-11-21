@@ -45,7 +45,8 @@ int main(int argc, char* argv[])
     QCommandLineOption scenarioOpt(QStringLiteral("scenario"), QStringLiteral("시작 시 시나리오 파일(*.scenario.json) 불러오기"),
                                    QStringLiteral("file"));
     parser.addOption(scenarioOpt);
-    QCommandLineOption startOpt(QStringLiteral("start"), QStringLiteral("시작 시 단독모드 임무 자동 시작 (개발/시연용)"));
+    QCommandLineOption startOpt(QStringLiteral("start"),
+                                QStringLiteral("임무 자동 시작 (단독: 즉시 / 연동: 두 장치 연결 시 임무전송 후 시작) — 개발/시연용"));
     parser.addOption(startOpt);
     QCommandLineOption speedOpt(QStringLiteral("speed"), QStringLiteral("배속 1/2/4/8"), QStringLiteral("factor"));
     parser.addOption(speedOpt);
@@ -81,9 +82,25 @@ int main(int argc, char* argv[])
     if (parser.isSet(speedOpt))
         ctx.mission().setSpeed(parser.value(speedOpt).toInt());
     if (parser.isSet(startOpt)) {
-        QStringList errors;
-        if (!ctx.mission().startOrResume(&errors))
-            ctx.logger().error(QStringLiteral("자동 시작 실패: %1").arg(errors.join(QStringLiteral(" / "))), QStringLiteral("App"));
+        if (ctx.mission().mode() == RunMode::Standalone) {
+            QStringList errors;
+            if (!ctx.mission().startOrResume(&errors))
+                ctx.logger().error(QStringLiteral("자동 시작 실패: %1").arg(errors.join(QStringLiteral(" / "))), QStringLiteral("App"));
+        } else {
+            // 연동모드: 두 장치가 연결되면 임무전송 → 시작 (시연/시험용)
+            auto* conn = new QMetaObject::Connection;
+            *conn = QObject::connect(&ctx.mission(), &MissionController::actionsChanged, &ctx.mission(),
+                                     [&ctx, conn](const MissionActions& a) {
+                                         if (a.sendMission && !ctx.mission().missionSent()) {
+                                             ctx.mission().sendMission();
+                                         } else if (a.start && ctx.mission().missionSent()) {
+                                             QObject::disconnect(*conn);
+                                             delete conn;
+                                             ctx.mission().startOrResume();
+                                         }
+                                     });
+            ctx.logger().info(QStringLiteral("자동 시작 대기: 두 장치 연결 시 임무전송 후 시작"), QStringLiteral("App"));
+        }
     }
 
     if (parser.isSet(zoomOpt)) {

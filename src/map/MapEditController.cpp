@@ -10,6 +10,8 @@
 #include <QPen>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 MapEditController::MapEditController(ScenarioModel& model, MapView& view, MapScene& scene, QObject* parent)
     : QObject(parent)

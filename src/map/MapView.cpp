@@ -12,6 +12,8 @@
 #include <QWheelEvent>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 namespace {
 // 한반도 중심 보기 영역 (제주~백두산, 서해~동해)

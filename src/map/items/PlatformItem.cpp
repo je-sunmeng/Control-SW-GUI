@@ -2,6 +2,8 @@
 
 #include <QFontMetricsF>
 #include <QPainter>
+#include <algorithm>
+#include <iterator>
 
 namespace {
 constexpr qreal kHalf = 18.0;   // 바운딩 반 크기(px)

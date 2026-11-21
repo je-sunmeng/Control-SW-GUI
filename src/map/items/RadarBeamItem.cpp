@@ -4,6 +4,8 @@
 #include <QtMath>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 RadarBeamItem::RadarBeamItem(const QColor& color, double maxRangeKm, double beamWidthDeg, ScanDirection dir,
                              QGraphicsItem* parent)

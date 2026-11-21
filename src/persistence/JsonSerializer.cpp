@@ -1,6 +1,8 @@
 #include "JsonSerializer.h"
 
 #include <QJsonArray>
+#include <algorithm>
+#include <iterator>
 
 namespace JsonSerializer {
 

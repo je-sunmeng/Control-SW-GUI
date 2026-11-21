@@ -3,6 +3,8 @@
 #include "model/Route.h"
 #include "net/ByteReader.h"
 #include "net/ByteWriter.h"
+#include <algorithm>
+#include <iterator>
 
 // 동선 공통 인코딩 (임시안, ICD 협의 대상)
 //   wpCount(u16) + [lat(f64), lon(f64), altKm(f32), speedMps(f32)] × wpCount

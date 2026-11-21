@@ -29,3 +29,6 @@ ctrlsw_add_test(tst_FrameDecoder)
 ctrlsw_add_test(tst_ProtocolTable)
 ctrlsw_add_test(tst_Network)
 ctrlsw_add_gui_test(tst_MapEdit)
+
+ctrlsw_add_test(tst_MockDevice)
+target_link_libraries(tst_MockDevice PRIVATE ctrlsw_mock)

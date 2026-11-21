@@ -3,6 +3,8 @@
 #include "common/GeoUtils.h"
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 double GhostState::opacityAt(double t) const
 {

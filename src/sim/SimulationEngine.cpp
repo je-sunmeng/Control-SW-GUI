@@ -2,6 +2,8 @@
 
 #include "RouteKinematics.h"
 #include "common/GeoUtils.h"
+#include <algorithm>
+#include <iterator>
 
 namespace {
 constexpr int kMaxSyncPerTick = 64;   // 비정상 시간 점프 시 무한 루프 방지

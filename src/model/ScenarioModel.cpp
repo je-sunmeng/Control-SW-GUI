@@ -4,6 +4,8 @@
 #include "log/Logger.h"
 
 #include <QSet>
+#include <algorithm>
+#include <iterator>
 
 namespace {
 const QString kSource = QStringLiteral("Scenario");

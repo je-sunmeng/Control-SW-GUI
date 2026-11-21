@@ -7,6 +7,8 @@
 #include <QPushButton>
 
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 SimControlWidget::SimControlWidget(QWidget* parent)
     : QWidget(parent)
