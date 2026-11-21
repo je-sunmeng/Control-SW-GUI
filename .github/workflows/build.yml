@@ -24,6 +24,7 @@ jobs:
             qt_arch: clang_64
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -57,6 +58,7 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Test
+        timeout-minutes: 10
         env:
           QT_QPA_PLATFORM: offscreen
         run: ctest --test-dir build --output-on-failure --timeout 120
@@ -79,12 +81,17 @@ jobs:
 
       - name: Smoke test (deployed exe)
         if: runner.os == 'Windows'
+        timeout-minutes: 5
         shell: pwsh
         run: |
+          # 배포 폴더에는 qwindows 플랫폼만 있으므로, 헤드리스 실행용 offscreen 플러그인은 Qt 설치본에서 사용
+          $env:QT_PLUGIN_PATH = "$env:QT_ROOT_DIR\plugins"
           deploy/ctrlsw_mock.exe --version
-          $p = Start-Process deploy/CtrlSW.exe -ArgumentList '-platform','offscreen','--scenario','deploy/samples/demo.scenario.json','--start','--speed','8','--screenshot','smoke.png','--screenshot-delay','3000' -PassThru -Wait
+          $p = Start-Process deploy/CtrlSW.exe -ArgumentList '-platform','offscreen','--scenario','deploy/samples/demo.scenario.json','--start','--speed','8','--screenshot','smoke.png','--screenshot-delay','3000' -PassThru
+          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "CtrlSW did not exit within 60 s" }
           if ($p.ExitCode -ne 0) { throw "CtrlSW exit code $($p.ExitCode)" }
           if (-not (Test-Path smoke.png)) { throw "screenshot missing" }
+          Get-ChildItem deploy -Name | Select-Object -First 40
 
       - name: Upload deploy folder
         if: runner.os == 'Windows'
