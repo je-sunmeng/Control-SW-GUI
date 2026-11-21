@@ -2,6 +2,7 @@
 
 #include <QtGlobal>
 #include <QMetaType>
+#include <QString>
 
 struct GeoPoint {
     double lat = 0.0; // deg, WGS84

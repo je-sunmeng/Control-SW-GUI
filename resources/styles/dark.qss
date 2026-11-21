@@ -1,0 +1,108 @@
+/* 다크 테마 — 전자전기-레이다 시연 제어 SW */
+
+QWidget {
+    background-color: #1e2228;
+    color: #d8dee9;
+    selection-background-color: #2f6fb0;
+    selection-color: #ffffff;
+}
+
+QMainWindow::separator {
+    background: #14171b;
+    width: 4px;
+    height: 4px;
+}
+QMainWindow::separator:hover { background: #2f6fb0; }
+
+QMenuBar { background: #181b20; }
+QMenuBar::item:selected { background: #2a3038; }
+QMenu { background: #22272e; border: 1px solid #3a414b; }
+QMenu::item { padding: 4px 22px; }
+QMenu::item:selected { background: #2f6fb0; }
+QMenu::item:disabled { color: #6b7380; }
+
+QToolBar {
+    background: #181b20;
+    border-bottom: 1px solid #2c323a;
+    spacing: 6px;
+    padding: 2px 6px;
+}
+QToolButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 3px 8px;
+}
+QToolButton:hover { background: #2a3038; border-color: #3a414b; }
+QToolButton:pressed { background: #2f6fb0; }
+QToolButton::menu-indicator { image: none; }
+
+QDockWidget::title {
+    background: #262b33;
+    padding: 4px 8px;
+    border-bottom: 1px solid #14171b;
+}
+
+QGroupBox {
+    border: 1px solid #353c46;
+    border-radius: 4px;
+    margin-top: 14px;
+    padding-top: 6px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 4px;
+    color: #8fb8e8;
+}
+
+QLabel#placeholderLabel { color: #6b7380; }
+
+QFrame#MapPlaceholder {
+    background-color: #0d1117;
+    border: 1px solid #2c323a;
+}
+QFrame#MapPlaceholder QLabel { background: transparent; color: #4a5260; font-size: 16pt; }
+
+QPushButton {
+    background: #2a3038;
+    border: 1px solid #3a414b;
+    border-radius: 3px;
+    padding: 4px 12px;
+}
+QPushButton:hover { background: #333a44; }
+QPushButton:pressed { background: #2f6fb0; }
+QPushButton:disabled { color: #5b6370; background: #23272d; }
+
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+    background: #14171b;
+    border: 1px solid #3a414b;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-color: #2f6fb0; }
+
+QTableView, QTreeView, QListView {
+    background: #14171b;
+    alternate-background-color: #181c21;
+    gridline-color: #2c323a;
+    border: 1px solid #2c323a;
+}
+QHeaderView::section {
+    background: #262b33;
+    color: #aab4c3;
+    border: none;
+    border-right: 1px solid #1e2228;
+    padding: 3px 6px;
+}
+
+QScrollBar:vertical { background: #181b20; width: 10px; }
+QScrollBar:horizontal { background: #181b20; height: 10px; }
+QScrollBar::handle { background: #3a414b; border-radius: 4px; min-height: 20px; min-width: 20px; }
+QScrollBar::handle:hover { background: #4a5260; }
+QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
+
+QStatusBar { background: #181b20; border-top: 1px solid #2c323a; }
+QStatusBar QLabel { background: transparent; padding: 0 6px; }
+
+QToolTip { background: #22272e; color: #d8dee9; border: 1px solid #3a414b; }

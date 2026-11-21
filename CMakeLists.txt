@@ -13,6 +13,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Qt 6.8 LTS 권장, 최소 6.4
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Network)
 qt_standard_project_setup()
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 option(CTRLSW_BUILD_TESTS "Build unit tests" ON)
 
