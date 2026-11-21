@@ -1,7 +1,18 @@
 #include "MissionController.h"
 
+#include "common/Constants.h"
 #include "log/Logger.h"
 #include "model/ScenarioModel.h"
+#include "net/NetworkManager.h"
+#include "net/messages/FalseTargetInfoMsg.h"
+#include "net/messages/FormationInfoMsg.h"
+#include "net/messages/JammerRouteMsg.h"
+#include "net/messages/MainLobeNotifyMsg.h"
+#include "net/messages/MissionStartMsg.h"
+#include "net/messages/MissionStopMsg.h"
+#include "net/messages/PositionMsg.h"
+#include "net/messages/RadarInfoMsg.h"
+#include "sim/RouteKinematics.h"
 #include "sim/SimulationEngine.h"
 
 namespace {
@@ -20,12 +31,23 @@ bool MissionActions::operator==(const MissionActions& o) const
            && refreshNeedsConfirm == o.refreshNeedsConfirm && speed == o.speed && modeChange == o.modeChange;
 }
 
-MissionController::MissionController(ScenarioModel& model, SimulationEngine& engine, Logger& logger, QObject* parent)
+MissionController::MissionController(ScenarioModel& model, SimulationEngine& engine, Logger& logger,
+                                     NetworkManager* network, QObject* parent)
     : QObject(parent)
     , m_model(model)
     , m_engine(engine)
     , m_logger(logger)
+    , m_network(network)
+    , m_port(Defaults::ServerPort)
 {
+    if (m_network) {
+        connect(m_network, &NetworkManager::deviceConnectionChanged, this, &MissionController::setDeviceConnected);
+        connect(m_network, &NetworkManager::messageReceived, this, &MissionController::onMessage);
+    }
+    connect(&m_engine, &SimulationEngine::jammerPositionDue, this,
+            [this](const PlatformState& s) { onPositionDue(s, false); });
+    connect(&m_engine, &SimulationEngine::formationPositionDue, this,
+            [this](const PlatformState& s) { onPositionDue(s, true); });
     connect(&m_engine, &SimulationEngine::stateChanged, this, &MissionController::updateActions);
     connect(&m_model, &ScenarioModel::objectAdded, this, &MissionController::updateActions);
     connect(&m_model, &ScenarioModel::objectChanged, this, &MissionController::updateActions);
@@ -62,7 +84,7 @@ MissionActions MissionController::actions() const
     a.pauseVisible = standalone;
     switch (state()) {
     case SimState::PreMission:
-        a.sendMission = !standalone && bothConnected;
+        a.sendMission = !standalone && bothConnected && m_model.validate();
         a.start = standalone ? m_model.validate() : (m_missionSent && bothConnected);
         a.refresh = true;
         a.speed = standalone;
@@ -109,6 +131,8 @@ bool MissionController::setMode(RunMode m)
     }
     m_missionSent = false;
     m_logger.info(QStringLiteral("운용 모드: %1").arg(modeName(m)), kSource);
+    if (m_network)
+        m_network->setEnabled(m == RunMode::Linked, m_port);   // 단독모드: 서버 close
     emit modeChanged(m);
     updateActions();
     return true;
@@ -120,11 +144,98 @@ bool MissionController::sendMission()
         m_logger.error(QStringLiteral("임무전송 불가 (연동모드 + 두 장치 연결 필요)"), kSource);
         return false;
     }
-    // TODO(M5): 분석SW / 신호발생장치로 임무 메시지 송신
-    m_missionSent = true;
-    m_logger.info(QStringLiteral("임무전송 완료"), kSource);
+    const ScenarioData d = m_model.snapshot();
+    bool ok = true;
+
+    RadarInfoMsg radars;
+    radars.radars = d.radars;
+    // 분석SW: 레이다 / 전자전기 동선 / 편대 동선
+    ok &= sendTo(DeviceCode::AnalysisSW, radars);
+    if (d.jammer) {
+        JammerRouteMsg jr;
+        jr.route = d.jammer->route;
+        ok &= sendTo(DeviceCode::AnalysisSW, jr);
+    }
+    if (d.formation) {
+        FormationInfoMsg f;
+        f.formation = *d.formation;
+        f.includeJamming = false;
+        ok &= sendTo(DeviceCode::AnalysisSW, f);
+    }
+    // 신호발생: 레이다 / 편대(+교란설정) / 단독허위표적
+    ok &= sendTo(DeviceCode::SignalGen, radars);
+    if (d.formation) {
+        FormationInfoMsg f;
+        f.formation = *d.formation;
+        f.includeJamming = true;
+        ok &= sendTo(DeviceCode::SignalGen, f);
+    }
+    FalseTargetInfoMsg ft;
+    ft.targets = d.falseTargets;
+    ok &= sendTo(DeviceCode::SignalGen, ft);
+
+    m_missionSent = ok;
+    if (ok)
+        m_logger.info(QStringLiteral("임무전송 완료"), kSource);
+    else
+        m_logger.error(QStringLiteral("임무전송 실패 — 일부 메시지를 보내지 못했습니다"), kSource);
     updateActions();
-    return true;
+    return ok;
+}
+
+bool MissionController::sendTo(DeviceCode dst, const IMessage& msg)
+{
+    if (!m_network)
+        return true;   // 네트워크 없는 구성(테스트): 송신 생략
+    return m_network->send(dst, msg);
+}
+
+void MissionController::onPositionDue(const PlatformState& state, bool formation)
+{
+    if (mode() != RunMode::Linked || this->state() != SimState::Running)
+        return;
+    if (formation) {
+        FormationPositionMsg m;
+        m.simTime = m_engine.simTime();
+        m.pos = state.pos;
+        m.altKm = state.altKm;
+        m.headingDeg = state.headingDeg;
+        sendTo(DeviceCode::SignalGen, m);
+    } else {
+        JammerPositionMsg m;
+        m.simTime = m_engine.simTime();
+        m.pos = state.pos;
+        m.altKm = state.altKm;
+        m.headingDeg = state.headingDeg;
+        sendTo(DeviceCode::SignalGen, m);
+    }
+}
+
+void MissionController::onMessage(DeviceCode src, const QSharedPointer<IMessage>& msg)
+{
+    if (!msg || msg->id() != MessageId::MainLobeNotify)
+        return;   // Heartbeat 등은 로그만
+    const auto* ml = static_cast<const MainLobeNotifyMsg*>(msg.data());
+    if (src != DeviceCode::SignalGen) {
+        m_logger.error(QStringLiteral("MainLobeNotify 는 신호발생장치에서만 수신해야 합니다"), kSource);
+        return;
+    }
+    if (mode() != RunMode::Linked || (state() != SimState::Running && state() != SimState::Paused))
+        return;   // 임무 중이 아니면 무시 (로그는 NetworkManager 가 기록)
+    if (!m_model.radar(ml->radarId)) {
+        m_logger.error(QStringLiteral("MainLobeNotify: 알 수 없는 레이다 ID %1").arg(ml->radarId), kSource);
+        return;
+    }
+    // 메시지 1개 → 빔 동기화 + 램프(mainLobeSynced) + 탐지 전시
+    m_engine.onExternalMainLobe(ml->radarId);
+    for (int i = 0; i < ml->detections.size(); ++i) {
+        Detection d;
+        d.radarId = ml->radarId;
+        d.targetKey = QStringLiteral("EXT%1").arg(i + 1);
+        d.pos = ml->detections[i];
+        d.simTime = m_engine.simTime();
+        m_engine.externalSource().push(d);
+    }
 }
 
 bool MissionController::startOrResume(QStringList* errors)
@@ -147,7 +258,21 @@ bool MissionController::startOrResume(QStringList* errors)
             *errors = {QStringLiteral("임무전송 후 시작할 수 있습니다")};
         return false;
     }
-    // TODO(M5): 연동모드 START 메시지 송신 (신호발생장치에는 편대/전자전기 시작위치 포함)
+    if (mode() == RunMode::Linked) {
+        const ScenarioData d = m_model.snapshot();
+        MissionStartMsg toAnalysis;
+        MissionStartMsg toSigGen;
+        toSigGen.withStartPositions = true;
+        if (d.formation && !d.formation->route.isEmpty())
+            toSigGen.formationStart = d.formation->route.waypoints.first();
+        if (d.jammer && !d.jammer->route.isEmpty())
+            toSigGen.jammerStart = d.jammer->route.waypoints.first();
+        if (!sendTo(DeviceCode::AnalysisSW, toAnalysis) || !sendTo(DeviceCode::SignalGen, toSigGen)) {
+            if (errors)
+                *errors = {QStringLiteral("임무시작 메시지를 보내지 못했습니다 (장치 연결 확인)")};
+            return false;
+        }
+    }
     QString err;
     if (!m_engine.start(&err)) {
         if (errors)
@@ -176,7 +301,11 @@ void MissionController::stop()
 {
     if (state() != SimState::Running && state() != SimState::Paused)
         return;
-    // TODO(M5): 양 장치 STOP 메시지 송신
+    if (mode() == RunMode::Linked) {
+        const MissionStopMsg stopMsg;
+        sendTo(DeviceCode::AnalysisSW, stopMsg);
+        sendTo(DeviceCode::SignalGen, stopMsg);
+    }
     m_engine.stop();
     m_logger.info(QStringLiteral("임무 중지 (T+%1 s)").arg(m_engine.simTime(), 0, 'f', 1), kSource);
 }

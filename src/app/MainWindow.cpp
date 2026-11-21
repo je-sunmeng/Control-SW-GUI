@@ -129,7 +129,7 @@ void MainWindow::setupDocks()
     m_objectDock = makeDock(QStringLiteral("오브젝트"), QStringLiteral("ObjectDock"), m_objectPanel,
                             Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     m_controlDock = makeDock(QStringLiteral("제어"), QStringLiteral("ControlDock"),
-                             new ControlPanel(m_ctx.mission(), m_ctx.engine(), m_ctx.scenario()),
+                             new ControlPanel(m_ctx.mission(), m_ctx.engine(), m_ctx.scenario(), &m_ctx.network()),
                              Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     m_logDock = makeDock(QStringLiteral("로그"), QStringLiteral("LogDock"), new LogPanel(m_ctx.logModel()),
                          Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea);

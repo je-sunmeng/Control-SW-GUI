@@ -23,8 +23,12 @@ DeviceStatusWidget::DeviceStatusWidget(QWidget* parent)
     };
     m_analysis = makeRow(0, DeviceCode::AnalysisSW);
     m_signalGen = makeRow(1, DeviceCode::SignalGen);
+    m_server = new QLabel(this);
+    m_server->setObjectName(QStringLiteral("placeholderLabel"));
+    g->addWidget(m_server, 2, 0, 1, 3);
     g->setColumnStretch(1, 1);
     setNetworkActive(false);
+    setListening(false, 0);
 }
 
 void DeviceStatusWidget::setConnected(DeviceCode dev, bool connected)
@@ -44,4 +48,10 @@ void DeviceStatusWidget::setNetworkActive(bool active)
                                  : QStringLiteral("미사용"));
         r->state->setObjectName(QStringLiteral("placeholderLabel"));
     }
+}
+
+void DeviceStatusWidget::setListening(bool listening, quint16 port)
+{
+    m_server->setText(listening ? QStringLiteral("TCP 서버 대기 중 · 포트 %1").arg(port)
+                                : QStringLiteral("TCP 서버 정지 (단독모드)"));
 }

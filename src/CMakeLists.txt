@@ -67,9 +67,52 @@ qt_add_library(ctrlsw_core STATIC
 
     mission/MissionController.h
     mission/MissionController.cpp
+
+    net/MessageId.h
+    net/MessageId.cpp
+    net/Opcode.h
+    net/Opcode.cpp
+    net/MessageHeader.h
+    net/MessageHeader.cpp
+    net/ByteWriter.h
+    net/ByteWriter.cpp
+    net/ByteReader.h
+    net/ByteReader.cpp
+    net/ProtocolTable.h
+    net/ProtocolTable.cpp
+    net/IMessage.h
+    net/MessageFactory.h
+    net/MessageFactory.cpp
+    net/MessageRegistry.cpp
+    net/FrameDecoder.h
+    net/FrameDecoder.cpp
+    net/ClientSession.h
+    net/ClientSession.cpp
+    net/TcpServer.h
+    net/TcpServer.cpp
+    net/NetworkManager.h
+    net/NetworkManager.cpp
+    net/messages/RawMessage.h
+    net/messages/RouteCodec.h
+    net/messages/RadarInfoMsg.h
+    net/messages/RadarInfoMsg.cpp
+    net/messages/JammerRouteMsg.h
+    net/messages/JammerRouteMsg.cpp
+    net/messages/FormationInfoMsg.h
+    net/messages/FormationInfoMsg.cpp
+    net/messages/FalseTargetInfoMsg.h
+    net/messages/FalseTargetInfoMsg.cpp
+    net/messages/MissionStartMsg.h
+    net/messages/MissionStartMsg.cpp
+    net/messages/MissionStopMsg.h
+    net/messages/PositionMsg.h
+    net/messages/PositionMsg.cpp
+    net/messages/MainLobeNotifyMsg.h
+    net/messages/MainLobeNotifyMsg.cpp
+    net/messages/HeartbeatMsg.h
 )
 target_include_directories(ctrlsw_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ctrlsw_core PUBLIC Qt6::Core Qt6::Gui)
+target_link_libraries(ctrlsw_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network)
 target_compile_definitions(ctrlsw_core PUBLIC CTRLSW_VERSION="${PROJECT_VERSION}")
 
 # 벡터지도 데이터 (tools/map_prep 으로 생성). 테스트에서도 쓰도록 core 에 포함
@@ -79,6 +122,12 @@ qt_add_resources(ctrlsw_core "mapdata"
     PREFIX "/"
     BASE ${PROJECT_SOURCE_DIR}/resources
     FILES ${CTRLSW_MAP_FILES}
+)
+# Command Code 매핑 기본값 (실행파일 옆 protocol.json 이 있으면 그 파일 우선)
+qt_add_resources(ctrlsw_core "protocol"
+    PREFIX "/"
+    BASE ${PROJECT_SOURCE_DIR}/resources
+    FILES ${PROJECT_SOURCE_DIR}/resources/protocol/protocol.json
 )
 
 # ---------------------------------------------------------------------------

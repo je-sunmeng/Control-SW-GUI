@@ -1,0 +1,24 @@
+{
+  "protocolVersion": "0.1-draft",
+  "comment": "Command Code 는 타 장비 협의 전 모의시험용 임시 값. 실행파일 옆에 같은 이름의 파일을 두면 이 기본값 대신 사용 (재빌드 불필요)",
+  "devices": { "ControlSW": "0x21", "AnalysisSW": "0x92", "SignalGen": "0xB1" },
+  "messages": [
+    { "id": "RadarInfo",         "src": "ControlSW",  "dst": "AnalysisSW", "cmd": "0x0001" },
+    { "id": "RadarInfo",         "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0001" },
+    { "id": "JammerRoute",       "src": "ControlSW",  "dst": "AnalysisSW", "cmd": "0x0002" },
+    { "id": "FormationInfo",     "src": "ControlSW",  "dst": "AnalysisSW", "cmd": "0x0003" },
+    { "id": "FormationInfo",     "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0003" },
+    { "id": "FalseTargetInfo",   "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0004" },
+    { "id": "MissionStart",      "src": "ControlSW",  "dst": "AnalysisSW", "cmd": "0x0010" },
+    { "id": "MissionStart",      "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0010" },
+    { "id": "MissionStop",       "src": "ControlSW",  "dst": "AnalysisSW", "cmd": "0x0012" },
+    { "id": "MissionStop",       "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0012" },
+    { "id": "JammerPosition",    "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0020" },
+    { "id": "FormationPosition", "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x0021" },
+    { "id": "MainLobeNotify",    "src": "SignalGen",  "dst": "ControlSW",  "cmd": "0x0100" },
+    { "id": "Heartbeat",         "src": "ControlSW",  "dst": "AnalysisSW", "cmd": "0x00F0" },
+    { "id": "Heartbeat",         "src": "ControlSW",  "dst": "SignalGen",  "cmd": "0x00F0" },
+    { "id": "Heartbeat",         "src": "AnalysisSW", "dst": "ControlSW",  "cmd": "0x00F0" },
+    { "id": "Heartbeat",         "src": "SignalGen",  "dst": "ControlSW",  "cmd": "0x00F0" }
+  ]
+}

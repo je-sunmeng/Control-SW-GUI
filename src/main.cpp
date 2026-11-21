@@ -52,6 +52,10 @@ int main(int argc, char* argv[])
     QCommandLineOption shotDelayOpt(QStringLiteral("screenshot-delay"), QStringLiteral("스크린샷 지연(ms, 기본 800)"),
                                     QStringLiteral("ms"));
     parser.addOption(shotDelayOpt);
+    QCommandLineOption portOpt(QStringLiteral("port"), QStringLiteral("연동모드 TCP 서버 포트 (기본 50021)"), QStringLiteral("port"));
+    parser.addOption(portOpt);
+    QCommandLineOption linkedOpt(QStringLiteral("linked"), QStringLiteral("시작 시 연동모드로 전환 (서버 대기)"));
+    parser.addOption(linkedOpt);
     parser.process(app);
 
     applyStyle(app);
@@ -70,6 +74,10 @@ int main(int argc, char* argv[])
         }
     }
 
+    if (parser.isSet(portOpt))
+        ctx.mission().setServerPort(quint16(parser.value(portOpt).toUInt()));
+    if (parser.isSet(linkedOpt))
+        ctx.mission().setMode(RunMode::Linked);
     if (parser.isSet(speedOpt))
         ctx.mission().setSpeed(parser.value(speedOpt).toInt());
     if (parser.isSet(startOpt)) {

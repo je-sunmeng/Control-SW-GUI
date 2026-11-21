@@ -3,6 +3,7 @@
 #include <QWidget>
 
 class MissionController;
+class NetworkManager;
 class ScenarioModel;
 class SimulationEngine;
 class ModeSelector;
@@ -15,7 +16,8 @@ class SpeedSelector;
 class ControlPanel : public QWidget {
     Q_OBJECT
 public:
-    ControlPanel(MissionController& mission, SimulationEngine& engine, ScenarioModel& model, QWidget* parent = nullptr);
+    ControlPanel(MissionController& mission, SimulationEngine& engine, ScenarioModel& model,
+                 NetworkManager* network = nullptr, QWidget* parent = nullptr);
 
     DeviceStatusWidget* deviceStatus() const { return m_devices; }
 

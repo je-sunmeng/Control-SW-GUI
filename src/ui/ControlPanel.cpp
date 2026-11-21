@@ -6,6 +6,7 @@
 #include "SimControlWidget.h"
 #include "SpeedSelector.h"
 #include "mission/MissionController.h"
+#include "net/NetworkManager.h"
 #include "sim/SimulationEngine.h"
 
 #include <QGroupBox>
@@ -23,7 +24,8 @@ QGroupBox* section(const QString& title, QWidget* content, QWidget* parent)
 }
 } // namespace
 
-ControlPanel::ControlPanel(MissionController& mission, SimulationEngine& engine, ScenarioModel& model, QWidget* parent)
+ControlPanel::ControlPanel(MissionController& mission, SimulationEngine& engine, ScenarioModel& model,
+                           NetworkManager* network, QWidget* parent)
     : QWidget(parent)
     , m_mission(mission)
     , m_engine(engine)
@@ -71,6 +73,11 @@ ControlPanel::ControlPanel(MissionController& mission, SimulationEngine& engine,
     connect(&m_engine, &SimulationEngine::mainLobeSynced, m_lamps, &MainLobeLampWidget::onMainLobe);
     connect(&m_mission, &MissionController::modeChanged, this,
             [this](RunMode m) { m_devices->setNetworkActive(m == RunMode::Linked); });
+
+    if (network) {
+        connect(network, &NetworkManager::deviceConnectionChanged, m_devices, &DeviceStatusWidget::setConnected);
+        connect(network, &NetworkManager::listeningChanged, m_devices, &DeviceStatusWidget::setListening);
+    }
 
     syncFromController();
 }

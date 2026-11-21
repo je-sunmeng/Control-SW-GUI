@@ -14,7 +14,8 @@ Make Gui by Qt
 | M2 | ✅ 완료 | 지도: 정거원통 투영, GeoJSON 벡터 레이어 10종 + 위경도선, 휠 줌/우·중클릭 드래그 팬, 레이어 토글(설정 저장), 한반도 중심, 축척 막대, 커서 위경도 |
 | M3 | ✅ 완료 | 시나리오 모델(레이다/전자전기/아군편대/단독허위표적), 오브젝트 목록·설정 에디터, 지도 편집(배치·동선 그리기·핸들 드래그), 항목별/시나리오 저장·불러오기 |
 | M4 | ✅ 완료 | 단독모드 시뮬레이션: 이동체(대권 보간), 빔 회전(MainLobe 동기화·sinc² 로브·잔상), 편대 허위타겟, 자체 탐지 판정, 랜덤 고스트, 잡음섹터, 배속, 시작/일시정지/재개/중지/새로고침 |
-| M5~M6 | ⏳ | 설계서 9장 참고 |
+| M5 | ✅ 완료 | 네트워크·연동모드: TCP 서버, 프레임(BigEndian 헤더 8B), `protocol.json` 매핑, 메시지 10종, 장치 식별·연결 상태, 임무전송/START/STOP, 위치 주기송신, MainLobe 수신 → 빔 동기화·탐지 전시 ([ICD 초안](docs/ICD.md)) |
+| M6 | ⏳ | 모의 클라이언트(분석SW/신호발생장치 에뮬레이터), Windows 빌드/배포 점검 |
 
 ## 빌드
 
@@ -47,6 +48,7 @@ ctest --preset windows-debug
 | `--scenario <file>` | 시작 시 시나리오 불러오기 (예: `samples/demo.scenario.json`) |
 | `--start` / `--speed <1\|2\|4\|8>` | 단독모드 임무 자동 시작 / 배속 지정 |
 | `--screenshot-delay <ms>` | 스크린샷 지연 (기본 800) |
+| `--linked` / `--port <n>` | 시작 시 연동모드(TCP 서버 대기) / 서버 포트 (기본 50021) |
 
 시연 예: `CtrlSW --scenario samples/demo.scenario.json --speed 4 --start`
 
@@ -71,6 +73,12 @@ ctest --preset windows-debug
 | 저장/불러오기 | 항목별 `*.radar.json`, `*.jammer.json`, `*.formation.json`, `*.falsetarget.json`, 전체 `*.scenario.json` (불러오기 = 기존 항목 교체, ID 재발급) |
 
 지도 데이터: [Natural Earth](https://www.naturalearthdata.com/) (Public Domain), 생성 방법은 [tools/map_prep](tools/map_prep/README.md)
+
+## 프로토콜 (Command Code)
+
+- 기본 매핑: `resources/protocol/protocol.json` (리소스 내장). **실행파일 옆에 `protocol.json` 을 두면 그 파일이 우선** (재빌드 불필요)
+- 메시지 추가/변경 절차: [docs/PROTOCOL_GUIDE.md](docs/PROTOCOL_GUIDE.md), 필드 정의: [docs/ICD.md](docs/ICD.md)
+- macOS 에서 연동모드 첫 실행 시 "들어오는 네트워크 연결 허용" 창이 뜨면 허용
 
 로그 파일 위치: `QStandardPaths::AppLocalDataLocation/logs/yyyyMMdd.log`
 (macOS: `~/Library/Application Support/CtrlSW/CtrlSW/logs`, Windows: `%LOCALAPPDATA%\CtrlSW\CtrlSW\logs`)

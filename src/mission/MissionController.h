@@ -6,8 +6,12 @@
 #include <QStringList>
 
 class Logger;
+class NetworkManager;
 class ScenarioModel;
 class SimulationEngine;
+class IMessage;
+struct PlatformState;
+template <typename T> class QSharedPointer;
 
 // 버튼 활성화 상태 (DESIGN 4.6 표)
 struct MissionActions {
@@ -27,12 +31,17 @@ struct MissionActions {
 };
 
 // 버튼 동작의 단일 진입점 + 활성화 규칙 관리 (UI 비의존)
-//  M4: 단독모드 시작/일시정지/재개/중지/새로고침/배속
-//  M5: 연동모드 임무전송/장치 연결/위치 주기송신/MainLobe 수신 연동 예정
+//  단독모드: 시작/일시정지/재개/중지/새로고침/배속 (네트워크 미사용)
+//  연동모드: 서버 대기, 임무전송(레이다/동선/편대/허위표적), START/STOP, 위치 주기송신,
+//           MainLobe 수신 → 빔 동기화 + 탐지 전시 + 램프 (network 가 nullptr 이면 송신 생략)
 class MissionController : public QObject {
     Q_OBJECT
 public:
-    MissionController(ScenarioModel& model, SimulationEngine& engine, Logger& logger, QObject* parent = nullptr);
+    MissionController(ScenarioModel& model, SimulationEngine& engine, Logger& logger,
+                      NetworkManager* network = nullptr, QObject* parent = nullptr);
+
+    void setServerPort(quint16 port) { m_port = port; }
+    quint16 serverPort() const { return m_port; }
 
     RunMode mode() const;
     SimState state() const;
@@ -59,10 +68,15 @@ signals:
 
 private:
     void updateActions();
+    bool sendTo(DeviceCode dst, const IMessage& msg);
+    void onMessage(DeviceCode src, const QSharedPointer<IMessage>& msg);
+    void onPositionDue(const PlatformState& state, bool formation);
 
     ScenarioModel& m_model;
     SimulationEngine& m_engine;
     Logger& m_logger;
+    NetworkManager* m_network;
+    quint16 m_port;
     bool m_missionSent = false;
     bool m_analysisConnected = false;
     bool m_signalGenConnected = false;

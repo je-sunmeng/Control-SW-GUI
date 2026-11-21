@@ -4,6 +4,7 @@
 #include "map/MapLayerManager.h"
 #include "mission/MissionController.h"
 #include "model/ScenarioModel.h"
+#include "net/NetworkManager.h"
 #include "sim/SimulationEngine.h"
 #include "log/Logger.h"
 
@@ -18,7 +19,8 @@ AppContext::AppContext(QObject* parent)
     , m_mapLayers(new MapLayerManager(this))
     , m_scenario(new ScenarioModel(this))
     , m_engine(new SimulationEngine(*m_scenario, this))
-    , m_mission(new MissionController(*m_scenario, *m_engine, *m_logger, this))
+    , m_network(new NetworkManager(m_protocol, *m_logger, this))
+    , m_mission(new MissionController(*m_scenario, *m_engine, *m_logger, m_network, this))
 {
     connect(m_logger, &Logger::entryAdded, m_logModel, &LogTableModel::append);
     m_logger->installQtMessageHandler();
@@ -41,6 +43,7 @@ AppContext::AppContext(QObject* parent)
     m_mapLayers->loadDefaultLayers(m_projection, m_logger);
     m_mapLayers->restoreVisibility();
     m_scenario->setLogger(m_logger);
+    m_protocol.loadDefault(m_logger, QCoreApplication::applicationDirPath());
 }
 
 AppContext::~AppContext()

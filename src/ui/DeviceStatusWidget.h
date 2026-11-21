@@ -16,6 +16,7 @@ public:
 public slots:
     void setConnected(DeviceCode dev, bool connected);
     void setNetworkActive(bool active);   // 단독모드 = 비활성(회색 안내)
+    void setListening(bool listening, quint16 port);
 
 private:
     struct Row {
@@ -24,5 +25,6 @@ private:
     };
     Row m_analysis;
     Row m_signalGen;
+    QLabel* m_server;
     bool m_active = false;
 };
