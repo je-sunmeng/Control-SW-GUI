@@ -1,0 +1,12 @@
+build/
+out/
+deploy/
+*.user
+*.user.*
+CMakeUserPresets.json
+.DS_Store
+.vs/
+.vscode/
+.idea/
+compile_commands.json
+logs/

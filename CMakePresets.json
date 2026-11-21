@@ -1,0 +1,55 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "CTRLSW_BUILD_TESTS": "ON" }
+    },
+    {
+      "name": "macos-debug",
+      "inherits": "base",
+      "displayName": "macOS Debug (Ninja)",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}" }
+    },
+    {
+      "name": "macos-release",
+      "inherits": "macos-debug",
+      "displayName": "macOS Release (Ninja)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "base",
+      "displayName": "Linux Debug (Ninja)",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "windows-msvc",
+      "inherits": "base",
+      "displayName": "Windows MSVC 2022 x64",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "cacheVariables": { "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "macos-debug", "configurePreset": "macos-debug" },
+    { "name": "macos-release", "configurePreset": "macos-release" },
+    { "name": "linux-debug", "configurePreset": "linux-debug" },
+    { "name": "windows-debug", "configurePreset": "windows-msvc", "configuration": "Debug" },
+    { "name": "windows-release", "configurePreset": "windows-msvc", "configuration": "Release" }
+  ],
+  "testPresets": [
+    { "name": "macos-debug", "configurePreset": "macos-debug", "output": { "outputOnFailure": true } },
+    { "name": "linux-debug", "configurePreset": "linux-debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-debug", "configurePreset": "windows-msvc", "configuration": "Debug", "output": { "outputOnFailure": true } }
+  ]
+}
