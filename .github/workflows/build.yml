@@ -81,17 +81,37 @@ jobs:
 
       - name: Smoke test (deployed exe)
         if: runner.os == 'Windows'
-        timeout-minutes: 5
+        timeout-minutes: 8
         shell: pwsh
         run: |
-          # 배포 폴더에는 qwindows 플랫폼만 있으므로, 헤드리스 실행용 offscreen 플러그인은 Qt 설치본에서 사용
-          $env:QT_PLUGIN_PATH = "$env:QT_ROOT_DIR\plugins"
-          deploy/ctrlsw_mock.exe --version
-          $p = Start-Process deploy/CtrlSW.exe -ArgumentList '-platform','offscreen','--scenario','deploy/samples/demo.scenario.json','--start','--speed','8','--screenshot','smoke.png','--screenshot-delay','3000' -PassThru
-          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "CtrlSW did not exit within 60 s" }
-          if ($p.ExitCode -ne 0) { throw "CtrlSW exit code $($p.ExitCode)" }
+          # 실행을 타임아웃·출력 캡처로 감싸서 멈춤(오류 대화상자 등) 시에도 원인을 남긴다
+          function Invoke-Timed([string]$exe, [string[]]$argv, [int]$sec) {
+            Write-Host "== $exe $($argv -join ' ')"
+            $p = Start-Process $exe -ArgumentList $argv -PassThru -NoNewWindow -RedirectStandardOutput out.txt -RedirectStandardError err.txt
+            $done = $p.WaitForExit($sec * 1000)
+            if (-not $done) { $p.Kill() }
+            Get-Content out.txt, err.txt -ErrorAction SilentlyContinue | Select-Object -Last 30
+            if (-not $done) { throw "timeout ($sec s): $exe" }
+            Write-Host "exit=$($p.ExitCode)"
+            return $p.ExitCode
+          }
+          Write-Host "--- deploy 폴더"
+          Get-ChildItem deploy -Recurse -Name | Select-Object -First 60
+          Write-Host "--- 의존 DLL (배포 폴더/시스템에 없으면 MISSING)"
+          foreach ($exe in 'deploy\CtrlSW.exe', 'deploy\ctrlsw_mock.exe') {
+            $deps = dumpbin /dependents $exe | Select-String '\.dll' | ForEach-Object { $_.ToString().Trim() }
+            foreach ($d in $deps) {
+              $found = (Test-Path "deploy\$d") -or (Test-Path "$env:WINDIR\System32\$d")
+              Write-Host ("{0,-40} {1}" -f $d, $(if ($found) { 'ok' } else { 'MISSING' }))
+            }
+          }
+          $env:QT_PLUGIN_PATH = "$env:QT_ROOT_DIR\plugins"   # 헤드리스용 offscreen 플러그인
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $code = Invoke-Timed 'deploy\ctrlsw_mock.exe' @('--version') 30
+          if ($code -ne 0) { throw "ctrlsw_mock exit $code" }
+          $code = Invoke-Timed 'deploy\CtrlSW.exe' @('--scenario', 'deploy\samples\demo.scenario.json', '--start', '--speed', '8', '--screenshot', 'smoke.png', '--screenshot-delay', '3000') 90
+          if ($code -ne 0) { throw "CtrlSW exit $code" }
           if (-not (Test-Path smoke.png)) { throw "screenshot missing" }
-          Get-ChildItem deploy -Name | Select-Object -First 40
 
       - name: Upload deploy folder
         if: runner.os == 'Windows'
@@ -101,7 +121,7 @@ jobs:
           path: deploy
 
       - name: Upload smoke screenshot
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && always()
         uses: actions/upload-artifact@v4
         with:
           name: smoke-screenshot-windows
