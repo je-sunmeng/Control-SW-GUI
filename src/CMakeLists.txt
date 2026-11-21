@@ -17,10 +17,26 @@ qt_add_library(ctrlsw_core STATIC
     log/LogTableModel.cpp
     log/LogFilterProxyModel.h
     log/LogFilterProxyModel.cpp
+
+    map/MapProjection.h
+    map/MapProjection.cpp
+    map/VectorLayer.h
+    map/VectorLayer.cpp
+    map/MapLayerManager.h
+    map/MapLayerManager.cpp
 )
 target_include_directories(ctrlsw_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ctrlsw_core PUBLIC Qt6::Core Qt6::Gui)
 target_compile_definitions(ctrlsw_core PUBLIC CTRLSW_VERSION="${PROJECT_VERSION}")
+
+# 벡터지도 데이터 (tools/map_prep 으로 생성). 테스트에서도 쓰도록 core 에 포함
+file(GLOB CTRLSW_MAP_FILES CONFIGURE_DEPENDS
+     ${PROJECT_SOURCE_DIR}/resources/map/*.geojson)
+qt_add_resources(ctrlsw_core "mapdata"
+    PREFIX "/"
+    BASE ${PROJECT_SOURCE_DIR}/resources
+    FILES ${CTRLSW_MAP_FILES}
+)
 
 # ---------------------------------------------------------------------------
 # CtrlSW : GUI 실행 파일 (app, ui)
@@ -35,8 +51,15 @@ qt_add_executable(CtrlSW
 
     ui/MapToolBar.h
     ui/MapToolBar.cpp
-    ui/MapPlaceholder.h
-    ui/MapPlaceholder.cpp
+    map/GraticuleLayer.h
+    map/GraticuleLayer.cpp
+    map/MapScene.h
+    map/MapScene.cpp
+    map/MapView.h
+    map/MapView.cpp
+    map/items/VectorLayerItem.h
+    map/items/VectorLayerItem.cpp
+
     ui/ObjectPanel.h
     ui/ObjectPanel.cpp
     ui/ControlPanel.h

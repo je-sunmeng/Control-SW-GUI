@@ -4,9 +4,11 @@
 #include "common/Types.h"
 #include "log/LogTableModel.h"
 #include "log/Logger.h"
+#include "map/MapLayerManager.h"
+#include "map/MapScene.h"
+#include "map/MapView.h"
 #include "ui/ControlPanel.h"
 #include "ui/LogPanel.h"
-#include "ui/MapPlaceholder.h"
 #include "ui/MapToolBar.h"
 #include "ui/ObjectPanel.h"
 
@@ -18,6 +20,8 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QStatusBar>
+
+#include <cmath>
 
 namespace {
 const QString kGeometryKey = QStringLiteral("mainWindow/geometry");
@@ -35,8 +39,8 @@ MainWindow::MainWindow(AppContext& ctx, QWidget* parent)
     setCorner(Qt::BottomLeftCorner, Qt::BottomDockWidgetArea);
     setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
 
-    setupToolBar();
     setupCentral();
+    setupToolBar();
     setupDocks();
     setupMenus();
     setupStatusBar();
@@ -89,14 +93,15 @@ void MainWindow::setupToolBar()
 {
     m_mapToolBar = new MapToolBar(this);
     addToolBar(Qt::TopToolBarArea, m_mapToolBar);
-    connect(m_mapToolBar, &MapToolBar::centerOnKoreaRequested, this, [this] {
-        m_ctx.logger().info(QStringLiteral("한반도 중심 이동 요청 (지도는 M2에서 구현)"), QStringLiteral("Map"));
-    });
+    m_mapToolBar->setLayerManager(&m_ctx.mapLayers());
+    connect(m_mapToolBar, &MapToolBar::centerOnKoreaRequested, m_mapView, &MapView::centerOnKorea);
 }
 
 void MainWindow::setupCentral()
 {
-    setCentralWidget(new MapPlaceholder(this));
+    m_mapScene = new MapScene(m_ctx.mapLayers(), m_ctx.projection(), this);
+    m_mapView = new MapView(m_mapScene, this);
+    setCentralWidget(m_mapView);
 }
 
 QDockWidget* MainWindow::makeDock(const QString& title, const QString& objectName, QWidget* content,
@@ -129,9 +134,22 @@ void MainWindow::setupStatusBar()
 {
     m_stateLabel = new QLabel(QStringLiteral("상태: %1").arg(toDisplayString(SimState::PreMission)), this);
     m_cursorLabel = new QLabel(QStringLiteral("위도 -  경도 -"), this);
-    m_cursorLabel->setMinimumWidth(220);
+    m_cursorLabel->setMinimumWidth(240);
+    m_scaleLabel = new QLabel(this);
+    m_scaleLabel->setMinimumWidth(110);
     statusBar()->addWidget(m_stateLabel);
+    statusBar()->addPermanentWidget(m_scaleLabel);
     statusBar()->addPermanentWidget(m_cursorLabel);
+
+    connect(m_mapView, &MapView::cursorGeoChanged, this, [this](const GeoPoint& p) {
+        m_cursorLabel->setText(QStringLiteral("위도 %1°%2  경도 %3°%4")
+                                   .arg(std::abs(p.lat), 0, 'f', 4).arg(p.lat >= 0 ? 'N' : 'S')
+                                   .arg(std::abs(p.lon), 0, 'f', 4).arg(p.lon >= 0 ? 'E' : 'W'));
+    });
+    connect(m_mapView, &MapView::cursorLeft, this, [this] { m_cursorLabel->setText(QStringLiteral("위도 -  경도 -")); });
+    connect(m_mapView, &MapView::scaleChanged, this, [this](double ppk) {
+        m_scaleLabel->setText(QStringLiteral("배율 %1 px/km").arg(ppk, 0, 'f', ppk < 1 ? 2 : 1));
+    });
 }
 
 void MainWindow::applyDefaultLayout()

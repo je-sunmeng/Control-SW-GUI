@@ -58,11 +58,6 @@ QGroupBox::title {
 
 QLabel#placeholderLabel { color: #6b7380; }
 
-QFrame#MapPlaceholder {
-    background-color: #0d1117;
-    border: 1px solid #2c323a;
-}
-QFrame#MapPlaceholder QLabel { background: transparent; color: #4a5260; font-size: 16pt; }
 
 QPushButton {
     background: #2a3038;

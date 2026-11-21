@@ -1,6 +1,7 @@
 #include "AppContext.h"
 
 #include "log/LogTableModel.h"
+#include "map/MapLayerManager.h"
 #include "log/Logger.h"
 
 #include <QCoreApplication>
@@ -11,6 +12,7 @@ AppContext::AppContext(QObject* parent)
     : QObject(parent)
     , m_logger(new Logger(this))
     , m_logModel(new LogTableModel(LogTableModel::DefaultMaxRows, this))
+    , m_mapLayers(new MapLayerManager(this))
 {
     connect(m_logger, &Logger::entryAdded, m_logModel, &LogTableModel::append);
     m_logger->installQtMessageHandler();
@@ -29,6 +31,9 @@ AppContext::AppContext(QObject* parent)
     else
         m_logger->error(QStringLiteral("로그 파일을 열 수 없습니다: %1").arg(QDir::toNativeSeparators(logDir)),
                         QStringLiteral("App"));
+
+    m_mapLayers->loadDefaultLayers(m_projection, m_logger);
+    m_mapLayers->restoreVisibility();
 }
 
 AppContext::~AppContext()

@@ -1,6 +1,7 @@
 #include "app/AppContext.h"
 #include "app/MainWindow.h"
 #include "log/Logger.h"
+#include "map/MapView.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -34,6 +35,10 @@ int main(int argc, char* argv[])
                                      QStringLiteral("메인 창을 <file>(PNG)로 캡처한 뒤 종료 (개발용)"),
                                      QStringLiteral("file"));
     parser.addOption(screenshotOpt);
+    QCommandLineOption zoomOpt(QStringLiteral("map-zoom"),
+                               QStringLiteral("시작 시 지도 배율을 <px/km>로 설정 (개발용, 한반도 중심 기준)"),
+                               QStringLiteral("pxPerKm"));
+    parser.addOption(zoomOpt);
     parser.process(app);
 
     applyStyle(app);
@@ -41,6 +46,15 @@ int main(int argc, char* argv[])
     AppContext ctx;
     MainWindow window(ctx);
     window.show();
+
+    if (parser.isSet(zoomOpt)) {
+        const double target = parser.value(zoomOpt).toDouble();
+        QTimer::singleShot(100, &window, [&window, target] {
+            MapView* v = window.mapView();
+            if (target > 0 && v->pxPerKm() > 0)
+                v->zoomBy(target / v->pxPerKm());
+        });
+    }
 
     if (parser.isSet(screenshotOpt)) {
         const QString path = parser.value(screenshotOpt);

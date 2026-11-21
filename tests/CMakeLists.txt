@@ -8,3 +8,5 @@ endfunction()
 
 ctrlsw_add_test(tst_GeoUtils)
 ctrlsw_add_test(tst_Logger)
+ctrlsw_add_test(tst_MapProjection)
+ctrlsw_add_test(tst_VectorLayer)
