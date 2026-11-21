@@ -90,16 +90,17 @@ jobs:
             $p = Start-Process $exe -ArgumentList $argv -PassThru -NoNewWindow -RedirectStandardOutput out.txt -RedirectStandardError err.txt
             $done = $p.WaitForExit($sec * 1000)
             if (-not $done) { $p.Kill() }
-            Get-Content out.txt, err.txt -ErrorAction SilentlyContinue | Select-Object -Last 30
+            Get-Content out.txt, err.txt -ErrorAction SilentlyContinue | Select-Object -Last 30 | ForEach-Object { Write-Host $_ }
             if (-not $done) { throw "timeout ($sec s): $exe" }
             Write-Host "exit=$($p.ExitCode)"
-            return $p.ExitCode
+            return [int]$p.ExitCode   # 파이프라인에는 종료코드만
           }
           Write-Host "--- deploy 폴더"
           Get-ChildItem deploy -Recurse -Name | Select-Object -First 60
           Write-Host "--- 의존 DLL (배포 폴더/시스템에 없으면 MISSING)"
           foreach ($exe in 'deploy\CtrlSW.exe', 'deploy\ctrlsw_mock.exe') {
-            $deps = dumpbin /dependents $exe | Select-String '\.dll' | ForEach-Object { $_.ToString().Trim() }
+            # api-ms-win-* 는 OS API Set (실파일 아님) → 제외
+            $deps = dumpbin /dependents $exe | Select-String '\.dll' | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -notlike 'api-ms-win-*' }
             foreach ($d in $deps) {
               $found = (Test-Path "deploy\$d") -or (Test-Path "$env:WINDIR\System32\$d")
               Write-Host ("{0,-40} {1}" -f $d, $(if ($found) { 'ok' } else { 'MISSING' }))
