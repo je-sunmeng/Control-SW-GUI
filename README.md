@@ -11,42 +11,132 @@ Make Gui by Qt
 | 단계 | 상태 | 내용 |
 |---|---|---|
 | M1 | ✅ 완료 | 프로젝트 골격, MainWindow 4분할 레이아웃(도크·레이아웃 저장), Logger(스레드 안전·일자별 파일)/LogPanel(유형 필터·검색·자동 스크롤) |
-| M2 | ✅ 완료 | 지도: 정거원통 투영, GeoJSON 벡터 레이어 10종 + 위경도선, 휠 줌/우·중클릭 드래그 팬, 레이어 토글(설정 저장), 한반도 중심, 축척 막대, 커서 위경도 |
+| M2 | ✅ 완료 | 지도: 정거원통 투영, GeoJSON 벡터 레이어 11종 + 위경도선, 휠 줌/좌·중클릭 드래그 팬, 레이어 토글(설정 저장), 한반도 중심, 축척 막대, 커서 위경도 |
 | M3 | ✅ 완료 | 시나리오 모델(레이다/전자전기/아군편대/단독허위표적), 오브젝트 목록·설정 에디터, 지도 편집(배치·동선 그리기·핸들 드래그), 항목별/시나리오 저장·불러오기 |
 | M4 | ✅ 완료 | 단독모드 시뮬레이션: 이동체(대권 보간), 빔 회전(MainLobe 동기화·sinc² 로브·잔상), 편대 허위타겟, 자체 탐지 판정, 랜덤 고스트, 잡음섹터, 배속, 시작/일시정지/재개/중지/새로고침 |
 | M5 | ✅ 완료 | 네트워크·연동모드: TCP 서버, 프레임(BigEndian 헤더 8B), `protocol.json` 매핑, 메시지 10종, 장치 식별·연결 상태, 임무전송/START/STOP, 위치 주기송신, MainLobe 수신 → 빔 동기화·탐지 전시 ([ICD 초안](docs/ICD.md)) |
-| M6 | ✅ 완료 | 모의 클라이언트 `ctrlsw_mock`(분석SW/재밍기법발생기 에뮬레이터), GitHub Actions: Windows(MSVC)·macOS × Qt 6.8 LTS 빌드·테스트, windeployqt 배포 아티팩트 |
+| M6 | ✅ 완료 | 모의 클라이언트 `ctrlsw_mock`(분석SW/재밍기법발생기 에뮬레이터), GitHub Actions: Windows(MSVC, Qt 6.8 LTS)·macOS(Qt 6.10) 빌드·테스트, windeployqt 배포 아티팩트 |
 
-## 빌드
+## 시작하기
 
-### macOS (Homebrew)
+> 개발 코드는 **`claude/qt6-radar-simulator-design-kwkk97` 브랜치**에 있습니다 (`main` 은 초기 커밋만 있음).
+> clone 할 때 반드시 `-b` 로 브랜치를 지정하세요.
 
+### 방법 A. 빌드 없이 실행 (Windows 배포본)
+
+1. **[Releases](https://github.com/je-sunmeng/Control-SW-GUI/releases)** 에서 최신 `CtrlSW-<버전>-windows-x64.zip` 다운로드
+2. 원하는 폴더에 압축 해제 (Qt·VC++ 런타임 포함, 설치 불필요)
+3. `CtrlSW.exe` 더블클릭
+4. 바로 시연: 명령 프롬프트에서 압축 푼 폴더로 이동 후
+   ```bat
+   CtrlSW.exe --scenario samples\demo.scenario.json --speed 4 --start
+   ```
+
+| 폴더 내용 | 설명 |
+|---|---|
+| `CtrlSW.exe` | 제어 SW |
+| `ctrlsw_mock.exe` | 분석SW·재밍기법발생기 모의 클라이언트 (연동 시험용, 콘솔) |
+| `samples/` | 데모 시나리오 |
+| `protocol.json.example` | Command Code 덮어쓰기 예시 (`protocol.json` 으로 이름 변경 시 적용) |
+| `README.txt` | 배포본 사용 안내 |
+
+브랜치의 최신 미릴리스 빌드는 GitHub → Actions → `build` 실행 결과의 `CtrlSW-windows-x64` 아티팩트로 받을 수 있습니다 (로그인 필요).
+
+### 방법 B. 소스를 받아 직접 빌드 — macOS
+
+**1) 준비 (최초 1회)**
 ```bash
-brew install qt cmake ninja
-cmake --preset macos-debug          # Homebrew Qt는 자동 탐색. 다른 Qt 사용 시 QT_PREFIX=/path/to/Qt/6.x/macos
-cmake --build --preset macos-debug
-ctest --preset macos-debug          # 단위 테스트
-open build/macos-debug/src/CtrlSW.app
+xcode-select --install                 # Xcode 명령줄 도구 (clang, git)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"   # Homebrew 미설치 시
+brew install qt cmake ninja            # Qt 6, CMake ≥ 3.21, Ninja
 ```
 
-### Windows (MSVC 2022)
+**2) 소스 받기**
+```bash
+git clone -b claude/qt6-radar-simulator-design-kwkk97 https://github.com/je-sunmeng/Control-SW-GUI.git
+cd Control-SW-GUI
+```
 
+**3) 빌드**
+```bash
+cmake --preset macos-debug             # 구성 (Homebrew Qt 자동 탐색)
+cmake --build --preset macos-debug     # 빌드
+ctest --preset macos-debug             # 단위 테스트 (선택, 20개)
+```
+- 다른 경로의 Qt(공식 설치 프로그램 등)를 쓰려면: `QT_PREFIX=~/Qt/6.8.3/macos cmake --preset macos-debug`
+- 배포용 최적화 빌드: `macos-debug` 대신 `macos-release` (결과는 `build/macos-release/`)
+
+**4) 실행**
+```bash
+open build/macos-debug/src/CtrlSW.app                          # 일반 실행
+# 옵션을 주어 실행 (앱 번들 안의 실행파일을 직접 호출)
+build/macos-debug/src/CtrlSW.app/Contents/MacOS/CtrlSW --scenario samples/demo.scenario.json --speed 4 --start
+# 모의 클라이언트
+build/macos-debug/tools/mock_client/ctrlsw_mock --device both
+```
+연동모드 첫 실행 시 "들어오는 네트워크 연결 허용" 창이 뜨면 **허용**.
+
+### 방법 C. 소스를 받아 직접 빌드 — Windows
+
+**1) 준비 (최초 1회)**
+
+| 도구 | 설치 |
+|---|---|
+| Git | [git-scm.com](https://git-scm.com/download/win) |
+| Visual Studio 2022 | Community 이상, 워크로드 **"C++를 사용한 데스크톱 개발"** 선택 (MSVC, CMake 포함) |
+| Qt 6.8 LTS | [Qt Online Installer](https://www.qt.io/download-qt-installer) → Qt 6.8.x → **MSVC 2022 64-bit** 체크 (예: `C:\Qt\6.8.3\msvc2022_64`) |
+
+**2) 소스 받기** — "x64 Native Tools Command Prompt for VS 2022" 를 열고
+```bat
+git clone -b claude/qt6-radar-simulator-design-kwkk97 https://github.com/je-sunmeng/Control-SW-GUI.git
+cd Control-SW-GUI
+```
+
+**3) 빌드**
 ```bat
 set QT_PREFIX=C:\Qt\6.8.3\msvc2022_64
 cmake --preset windows-msvc
 cmake --build --preset windows-release
-ctest --preset windows-debug
-%QT_PREFIX%\bin\windeployqt build\windows-msvc\Release\CtrlSW.exe
+```
+테스트까지 돌리려면 `cmake --build --preset windows-debug` 후 `ctest --preset windows-debug`.
+
+**4) 실행 준비 (Qt DLL 복사)** — 빌드 결과 exe 는 Qt DLL 이 없으면 실행되지 않으므로 한 번 배포 도구를 돌립니다
+```bat
+%QT_PREFIX%\bin\windeployqt --release build\windows-msvc\Release\CtrlSW.exe
 ```
 
-### Windows 배포본
+**5) 실행**
+```bat
+build\windows-msvc\Release\CtrlSW.exe
+build\windows-msvc\Release\CtrlSW.exe --scenario samples\demo.scenario.json --speed 4 --start
+build\windows-msvc\Release\ctrlsw_mock.exe --device both
+```
+Windows 방화벽 허용 창이 뜨면 **허용** (연동모드 TCP 서버).
 
-**[Releases](https://github.com/je-sunmeng/Control-SW-GUI/releases)** 에서 `CtrlSW-<버전>-windows-x64.zip` 을 받아 압축을 풀면
-(브랜치 빌드는 Actions → `build` 의 `CtrlSW-windows-x64` 아티팩트)
-`CtrlSW.exe`, `ctrlsw_mock.exe`, Qt DLL, `samples/` 가 포함된 실행 폴더입니다 (Qt 설치 불필요).
-`protocol.json.example` 을 `protocol.json` 으로 이름을 바꿔 두면 Command Code 매핑을 덮어쓸 수 있습니다.
+> Qt Creator 를 쓰는 경우: [파일 → 파일 또는 프로젝트 열기] 로 루트의 `CMakeLists.txt` 를 열고 Kit(Qt 6.8 MSVC 2022 64bit / macOS) 선택 → 빌드·실행(▶).
 
-릴리스 절차: `CMakeLists.txt` 의 `VERSION` 갱신 → `docs/release/v<버전>.md` 작성 → `git tag v<버전> && git push origin v<버전>`
+### 최신 코드로 업데이트
+
+```bash
+cd Control-SW-GUI
+git pull                               # 최신 변경 받기
+cmake --build --preset macos-debug     # (Windows: cmake --build --preset windows-release)
+```
+CMakeLists 변경 등으로 빌드가 꼬이면 `build/` 폴더를 지우고 3) 부터 다시 수행합니다.
+
+### 문제 해결
+
+| 증상 | 조치 |
+|---|---|
+| `Could not find a package configuration file provided by "Qt6"` | Qt 경로 지정: macOS `QT_PREFIX=$(brew --prefix qt)`, Windows `set QT_PREFIX=C:\Qt\6.8.3\msvc2022_64` 후 구성 다시 실행 (`build/` 삭제 권장) |
+| Windows 에서 `Qt6Core.dll 을 찾을 수 없습니다` | 4) `windeployqt` 실행, 또는 `%QT_PREFIX%\bin` 을 PATH 에 추가 |
+| `No such preset` | 해당 OS 용 프리셋 사용 (macOS `macos-*`, Windows `windows-*`), CMake 3.21 이상 확인 (`cmake --version`) |
+| 지도·화면이 비어 있음 | 실행 로그 확인: 앱 하단 로그창 또는 아래 "로그 파일 위치" |
+| 모의 클라이언트가 접속 안 됨 | CtrlSW 가 연동모드인지(화면 [연동] 또는 `--linked`), 포트(기본 50021)·방화벽 확인 |
+
+### 릴리스 절차 (관리자)
+
+`CMakeLists.txt` 의 `VERSION` 갱신 → `docs/release/v<버전>.md` 작성 → `git tag -a v<버전> -m ... && git push origin v<버전>`
 → CI 가 Windows 빌드·테스트·스모크 테스트 후 GitHub Release 에 zip 게시
 
 ### 실행 옵션
