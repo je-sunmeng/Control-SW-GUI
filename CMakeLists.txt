@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(CtrlSW
-    VERSION 0.1.0
+    VERSION 0.1.1
     DESCRIPTION "Stand Off Jammer - Radar demonstration control SW"
     LANGUAGES CXX)
 
@@ -25,6 +25,17 @@ if(MSVC)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
+
+# Windows 실행파일에 버전 정보(파일 속성) 추가. 설명 문자열은 ASCII (rc.exe 코드페이지 문제 회피)
+function(ctrlsw_add_version_info target name description)
+    if(WIN32)
+        set(RC_NAME "${name}")
+        set(RC_DESCRIPTION "${description}")
+        set(rc "${CMAKE_CURRENT_BINARY_DIR}/${target}_version.rc")
+        configure_file(${PROJECT_SOURCE_DIR}/cmake/version.rc.in ${rc} @ONLY)
+        target_sources(${target} PRIVATE ${rc})
+    endif()
+endfunction()
 
 add_subdirectory(src)
 

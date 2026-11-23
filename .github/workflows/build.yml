@@ -110,6 +110,12 @@ jobs:
               Write-Host ("{0,-40} {1}" -f $d, $(if ($found) { 'ok' } else { 'MISSING' }))
             }
           }
+          # 실행파일 버전 정보(파일 속성) 확인
+          foreach ($exe in 'deploy\CtrlSW.exe', 'deploy\ctrlsw_mock.exe') {
+            $vi = (Get-Item $exe).VersionInfo
+            Write-Host "$exe FileVersion=$($vi.FileVersion) Product=$($vi.ProductName) Desc=$($vi.FileDescription)"
+            if ([string]::IsNullOrEmpty($vi.FileVersion)) { throw "VERSIONINFO 없음: $exe" }
+          }
           $code = Invoke-Timed 'deploy\ctrlsw_mock.exe' @('--version') 30
           if ($code -ne 0) { throw "ctrlsw_mock exit $code" }
           $appArgs = @('--scenario', 'deploy\samples\demo.scenario.json', '--start', '--speed', '8', '--screenshot', 'smoke.png', '--screenshot-delay', '3000')

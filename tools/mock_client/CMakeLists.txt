@@ -11,7 +11,5 @@ target_link_libraries(ctrlsw_mock_client PRIVATE ctrlsw_mock)
 set_target_properties(ctrlsw_mock_client PROPERTIES
     OUTPUT_NAME ctrlsw_mock
     MACOSX_BUNDLE OFF
-    WIN32_EXECUTABLE OFF
-    QT_TARGET_VERSION "${PROJECT_VERSION}"
-    QT_TARGET_PRODUCT_NAME "CtrlSW mock client"
-    QT_TARGET_DESCRIPTION "AnalysisSW / SignalGen emulator")
+    WIN32_EXECUTABLE OFF)
+ctrlsw_add_version_info(ctrlsw_mock_client ctrlsw_mock "CtrlSW mock client - AnalysisSW / SignalGen emulator")
