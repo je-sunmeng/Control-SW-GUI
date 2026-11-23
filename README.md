@@ -39,11 +39,15 @@ ctest --preset windows-debug
 %QT_PREFIX%\bin\windeployqt build\windows-msvc\Release\CtrlSW.exe
 ```
 
-### Windows 배포본 (CI 아티팩트)
+### Windows 배포본
 
-GitHub → Actions → `build` 실행 결과의 **`CtrlSW-windows-x64`** 아티팩트를 받아 압축을 풀면
+**[Releases](https://github.com/je-sunmeng/Control-SW-GUI/releases)** 에서 `CtrlSW-<버전>-windows-x64.zip` 을 받아 압축을 풀면
+(브랜치 빌드는 Actions → `build` 의 `CtrlSW-windows-x64` 아티팩트)
 `CtrlSW.exe`, `ctrlsw_mock.exe`, Qt DLL, `samples/` 가 포함된 실행 폴더입니다 (Qt 설치 불필요).
 `protocol.json.example` 을 `protocol.json` 으로 이름을 바꿔 두면 Command Code 매핑을 덮어쓸 수 있습니다.
+
+릴리스 절차: `CMakeLists.txt` 의 `VERSION` 갱신 → `docs/release/v<버전>.md` 작성 → `git tag v<버전> && git push origin v<버전>`
+→ CI 가 Windows 빌드·테스트·스모크 테스트 후 GitHub Release 에 zip 게시
 
 ### 실행 옵션
 

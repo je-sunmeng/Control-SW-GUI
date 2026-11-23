@@ -233,4 +233,9 @@ set_target_properties(CtrlSW PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER "kr.ctrlsw.radar"
     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+    # Windows 파일 속성(VERSIONINFO) — Qt 가 rc 파일 자동 생성
+    QT_TARGET_VERSION "${PROJECT_VERSION}"
+    QT_TARGET_PRODUCT_NAME "CtrlSW"
+    QT_TARGET_DESCRIPTION "Stand Off Jammer - Radar demonstration control SW"
+    QT_TARGET_COPYRIGHT "Control-SW-GUI"
 )
