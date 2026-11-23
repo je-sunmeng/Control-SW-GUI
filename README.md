@@ -19,8 +19,8 @@ Make Gui by Qt
 
 ## 시작하기
 
-> 개발 코드는 **`claude/qt6-radar-simulator-design-kwkk97` 브랜치**에 있습니다 (`main` 은 초기 커밋만 있음).
-> clone 할 때 반드시 `-b` 로 브랜치를 지정하세요.
+> `main` = 검증된 안정 버전 (릴리스 기준), 신규 개발은 별도 브랜치에서 진행 후 `main` 에 병합합니다.
+> 개발 중인 코드를 받으려면 `git clone -b <브랜치명> ...` 처럼 브랜치를 지정하세요.
 
 ### 방법 A. 빌드 없이 실행 (Windows 배포본)
 
@@ -53,7 +53,7 @@ brew install qt cmake ninja            # Qt 6, CMake ≥ 3.21, Ninja
 
 **2) 소스 받기**
 ```bash
-git clone -b claude/qt6-radar-simulator-design-kwkk97 https://github.com/je-sunmeng/Control-SW-GUI.git
+git clone https://github.com/je-sunmeng/Control-SW-GUI.git
 cd Control-SW-GUI
 ```
 
@@ -88,7 +88,7 @@ build/macos-debug/tools/mock_client/ctrlsw_mock --device both
 
 **2) 소스 받기** — "x64 Native Tools Command Prompt for VS 2022" 를 열고
 ```bat
-git clone -b claude/qt6-radar-simulator-design-kwkk97 https://github.com/je-sunmeng/Control-SW-GUI.git
+git clone https://github.com/je-sunmeng/Control-SW-GUI.git
 cd Control-SW-GUI
 ```
 
