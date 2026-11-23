@@ -187,6 +187,8 @@ void TstJsonSerializer::files_scenarioRoundTrip()
     QCOMPARE(m2.radars().size(), 1);
     QVERIFY(m2.jammer());
     QCOMPARE(m2.jammer()->route.waypointCount(), 2);
+    QVERIFY(m2.jammer()->route.closed);
+    QCOMPARE(m2.jammer()->route.segmentCount(), 2);   // 루프 저장/복원
     QVERIFY(m2.formation());
     QCOMPARE(m2.falseTargets().size(), 1);
     QVERIFY(m2.falseTargets().first().posSet);

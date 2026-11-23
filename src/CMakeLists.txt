@@ -212,6 +212,8 @@ qt_add_library(ctrlsw_gui STATIC
     ui/SimControlWidget.cpp
     ui/SpeedSelector.h
     ui/SpeedSelector.cpp
+    ui/WheelGuard.h
+    ui/WheelGuard.cpp
     ui/LogPanel.h
     ui/LogPanel.cpp
 )

@@ -29,7 +29,8 @@ private slots:
     void drawRoute_finishAndBackspace();
     void drawRoute_needsTwoPoints();
     void drawRoute_cancelRemovesNewObject();
-    void drawRoute_rightClickFinishes();
+    void drawRoute_rightClickRemovesLast();
+    void leftDrag_pansWithoutClick();
     void placePoint_and_cancel();
     void lock_cancelsAndDisablesDrag();
     void scene_syncsItems();
@@ -38,6 +39,7 @@ private slots:
     void editMode_leftClickDoesNotDragHandle();
     void destroySceneBeforeController();
     void runtimeItems_followSnapshots();
+    void zoomOut_limitedToMapExtent();
 
 private:
     void click(Qt::MouseButton b, const GeoPoint& p)
@@ -157,15 +159,36 @@ void TstMapEdit::drawRoute_cancelRemovesNewObject()
     QCOMPARE(m_model->jammer()->id, j2);
 }
 
-void TstMapEdit::drawRoute_rightClickFinishes()
+void TstMapEdit::drawRoute_rightClickRemovesLast()
 {
     const ObjectId t = m_model->addFalseTarget(FalseTargetType::Moving);
     m_edit->startDrawRoute(t, true);
     click(Qt::LeftButton, {35.0, 125.0});
     click(Qt::LeftButton, {35.5, 125.0});
-    click(Qt::RightButton, {0, 0});
-    QCOMPARE(m_edit->mode(), MapEditController::Mode::Idle);
+    click(Qt::LeftButton, {36.0, 125.0});
+    click(Qt::RightButton, {0, 0});   // 최근 점 삭제 (완료 아님)
+    QCOMPARE(m_edit->mode(), MapEditController::Mode::DrawRoute);
     QCOMPARE(m_model->route(t)->waypointCount(), 2);
+    QCOMPARE(m_model->route(t)->waypoints.last().lat, 35.5);
+    key(Qt::Key_Return);
+    QCOMPARE(m_edit->mode(), MapEditController::Mode::Idle);
+}
+
+void TstMapEdit::leftDrag_pansWithoutClick()
+{
+    QSignalSpy clicks(m_view.get(), &MapView::mapClicked);
+    const QPoint start = m_view->viewport()->rect().center();
+    const QPointF before = m_view->mapToScene(start);
+    sendMouse(QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
+    for (int i = 1; i <= 5; ++i)
+        sendMouse(QEvent::MouseMove, start + QPoint(20 * i, 10 * i), Qt::NoButton, Qt::LeftButton);
+    sendMouse(QEvent::MouseButtonRelease, start + QPoint(100, 50), Qt::LeftButton, Qt::NoButton);
+    QCOMPARE(clicks.count(), 0);                                    // 드래그는 클릭 아님
+    QVERIFY((m_view->mapToScene(start) - before).manhattanLength() > 10);   // 지도 이동
+
+    sendMouse(QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
+    sendMouse(QEvent::MouseButtonRelease, start, Qt::LeftButton, Qt::NoButton);
+    QCOMPARE(clicks.count(), 1);                                    // 제자리 좌클릭 = 클릭
 }
 
 void TstMapEdit::placePoint_and_cancel()
@@ -283,10 +306,13 @@ void TstMapEdit::editMode_leftClickDoesNotDragHandle()
 
     const QPoint p = m_view->mapFromScene(m_proj.toScene({37.5, 127.5}));
     sendMouse(QEvent::MouseButtonPress, p, Qt::LeftButton, Qt::LeftButton);
+    sendMouse(QEvent::MouseButtonRelease, p, Qt::LeftButton, Qt::NoButton);
+    QCOMPARE(m_model->route(j)->waypointCount(), 1);      // 핸들 위 클릭도 웨이포인트로
+    sendMouse(QEvent::MouseButtonPress, p, Qt::LeftButton, Qt::LeftButton);
     sendMouse(QEvent::MouseMove, p + QPoint(50, 0), Qt::NoButton, Qt::LeftButton);
     sendMouse(QEvent::MouseButtonRelease, p + QPoint(50, 0), Qt::LeftButton, Qt::NoButton);
-    QCOMPARE(m_model->radar(r)->pos.lat, 37.5);           // 레이다는 그대로
-    QCOMPARE(m_model->route(j)->waypointCount(), 1);      // 클릭은 웨이포인트로
+    QCOMPARE(m_model->radar(r)->pos.lat, 37.5);           // 레이다는 그대로 (드래그 = 지도 이동)
+    QCOMPARE(m_model->route(j)->waypointCount(), 1);      // 드래그는 점 추가 안 함
 }
 
 void TstMapEdit::destroySceneBeforeController()
@@ -321,6 +347,19 @@ void TstMapEdit::runtimeItems_followSnapshots()
     QVERIFY(m_scene->runtimeItemCount() >= 3);   // 중지 후에도 마지막 상태 유지
     engine.reset();                              // 새로고침 → 전시 초기화
     QCOMPARE(m_scene->runtimeItemCount(), 0);
+}
+
+void TstMapEdit::zoomOut_limitedToMapExtent()
+{
+    m_view->zoomBy(1e-6);   // 최대한 축소 시도
+    const QRectF visible = m_view->mapToScene(m_view->viewport()->rect()).boundingRect();
+    const QRectF data = m_scene->dataRect();
+    // 화면에 보이는 영역이 지도 데이터 영역을 벗어나지 않음 (1 km 허용 오차)
+    QVERIFY2(data.adjusted(-1, -1, 1, 1).contains(visible),
+             qPrintable(QStringLiteral("visible %1x%2 data %3x%4").arg(visible.width()).arg(visible.height())
+                            .arg(data.width()).arg(data.height())));
+    // 한 축은 지도 전체 폭/높이와 일치 (= 최대 축소)
+    QVERIFY(qAbs(visible.width() - data.width()) < 2 || qAbs(visible.height() - data.height()) < 2);
 }
 
 QTEST_MAIN(TstMapEdit)

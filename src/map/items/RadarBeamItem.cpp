@@ -60,13 +60,17 @@ void RadarBeamItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
 {
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setPen(Qt::NoPen);
+    // 레이다 색을 그대로 쓰면 형광처럼 튀므로 채도·명도를 낮춘 색으로 전시
+    float h, sat, val, a;
+    m_color.getHsvF(&h, &sat, &val, &a);
+    const QColor tone = QColor::fromHsvF(h, sat * 0.55f, val * 0.78f);
 
     // --- 잔상: 스캔 반대쪽으로 AfterglowDeg 만큼 감쇠 부채꼴 ---
     // QConicalGradient 각도: 0 = 3시 방향, 반시계 증가. 로컬 북쪽(−y) = 90°
     {
         QConicalGradient g(QPointF(0, 0), 90.0);
-        QColor c0 = m_color, c1 = m_color;
-        c0.setAlpha(70);
+        QColor c0 = tone, c1 = tone;
+        c0.setAlpha(40);
         c1.setAlpha(0);
         const double frac = AfterglowDeg / 360.0;
         if (m_dir == ScanDirection::Clockwise) {   // 빔 뒤쪽 = 반시계(각도 +) 쪽
@@ -89,13 +93,15 @@ void RadarBeamItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
 
     // --- 로브: 중심에서 바깥으로 감쇠하는 방사형 그라데이션 ---
     QRadialGradient rg(QPointF(0, 0), m_range);
-    QColor inner = m_color.lighter(130), outer = m_color;
-    inner.setAlpha(230);
-    outer.setAlpha(70);
+    QColor inner = tone, outer = tone;
+    inner.setAlpha(150);
+    outer.setAlpha(35);
     rg.setColorAt(0.0, inner);
     rg.setColorAt(1.0, outer);
     painter->setBrush(rg);
-    QPen edge(m_color.lighter(150), 1.0);
+    QColor edgeColor = tone;
+    edgeColor.setAlpha(110);
+    QPen edge(edgeColor, 1.0);
     edge.setCosmetic(true);
     painter->setPen(edge);
     painter->drawPath(m_lobe);

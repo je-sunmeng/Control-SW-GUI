@@ -94,7 +94,10 @@ QJsonObject toJson(const Route& route)
     QJsonArray segs;
     for (const RouteSegment& s : route.segments)
         segs.append(QJsonObject{{QStringLiteral("altitudeKm"), s.altitudeKm}, {QStringLiteral("speedMps"), s.speedMps}});
-    return {{QStringLiteral("waypoints"), wps}, {QStringLiteral("segments"), segs}};
+    QJsonObject o{{QStringLiteral("waypoints"), wps}, {QStringLiteral("segments"), segs}};
+    if (route.closed)
+        o.insert(QStringLiteral("closed"), true);
+    return o;
 }
 
 QJsonObject toJson(const Radar& r)
@@ -172,7 +175,8 @@ bool fromJson(const QJsonObject& o, Route& out, QString* error)
         r.waypoints.append(p);
     }
     const QJsonArray segs = o.value(QLatin1String("segments")).toArray();
-    const int needed = std::max(0, int(r.waypoints.size()) - 1);
+    r.closed = o.value(QLatin1String("closed")).toBool(false);
+    const int needed = r.expectedSegmentCount();
     for (int i = 0; i < needed; ++i) {
         RouteSegment s = i > 0 ? r.segments.last() : RouteSegment{};
         if (i < segs.size()) {
@@ -211,6 +215,7 @@ bool fromJson(const QJsonObject& o, JammerAircraft& out, QString* error)
     j.name = o.value(QLatin1String("name")).toString();
     if (!fromJson(o.value(QLatin1String("route")).toObject(), j.route, error))
         return false;
+    j.route.setClosed(true);   // 전자전기 동선은 루프
     out = j;
     return true;
 }

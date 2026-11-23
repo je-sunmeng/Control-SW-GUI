@@ -2,6 +2,8 @@
 
 #include <QSet>
 
+#include <cmath>
+
 #include "GraticuleLayer.h"
 #include "MapLayerManager.h"
 #include "MapProjection.h"
@@ -34,7 +36,8 @@ constexpr qreal kFormationTargetZ = 38.0;
 constexpr qreal kPlatformZ = 40.0;
 constexpr qreal kGhostZ = 42.0;
 constexpr qreal kMarkZ = 45.0;
-constexpr int kMaxMarks = 400;
+constexpr int kMaxMarks = 5000;            // 탐지 지점 최대 보관 수 (초과 시 오래된 것부터 제거)
+constexpr double kMarkGridDeg = 0.002;     // 같은 레이다의 ~200 m 이내 반복 탐지는 1개로 표시
 
 template <typename Item>
 void destroy(QGraphicsScene* scene, Item* item)
@@ -232,6 +235,7 @@ void MapScene::resetRuntimeItems()
     m_platforms.clear();
     m_formationTargets.clear();
     m_marks.clear();
+    m_markKeys.clear();
     m_ghosts.clear();
     m_noiseSectors.clear();
 }
@@ -322,26 +326,28 @@ void MapScene::applySnapshot(const SimSnapshot& s)
         }
     }
 
-    // --- 탐지 마커: 레이다 색상, 스캔주기 동안 fade ---
+    // --- 탐지 마커: 레이다 색상, 페이딩 없이 계속 표시 (같은 지점 반복 탐지는 1개) ---
     for (const Detection& d : s.detections) {
         const Radar* r = m_model->radar(d.radarId);
         if (!r)
             continue;
-        auto* mark = new DetectionMarkItem(ColorPalette::radar(r->colorIndex), d.simTime, r->scanPeriodSec);
+        const auto gx = quint64(qint64(std::floor((d.pos.lon + 180.0) / kMarkGridDeg)) & 0xFFFFF);
+        const auto gy = quint64(qint64(std::floor((d.pos.lat + 90.0) / kMarkGridDeg)) & 0xFFFFF);
+        const quint64 key = (quint64(d.radarId & 0xFFFFFF) << 40) | (gx << 20) | gy;
+        if (m_markKeys.contains(key))
+            continue;
+        m_markKeys.insert(key);
+        auto* mark = new DetectionMarkItem(ColorPalette::radar(r->colorIndex));
         mark->setZValue(kMarkZ);
         mark->setPos(m_proj.toScene(d.pos));
+        mark->setData(0, key);
         addItem(mark);
         m_marks.append(mark);
     }
-    while (m_marks.size() > kMaxMarks)
-        destroy(this, m_marks.takeFirst());
-    for (auto it = m_marks.begin(); it != m_marks.end();) {
-        if (!(*it)->updateAt(s.simTime)) {
-            destroy(this, *it);
-            it = m_marks.erase(it);
-        } else {
-            ++it;
-        }
+    while (m_marks.size() > kMaxMarks) {
+        DetectionMarkItem* old = m_marks.takeFirst();
+        m_markKeys.remove(old->data(0).toULongLong());
+        destroy(this, old);
     }
 
     // --- 랜덤 고스트 ---

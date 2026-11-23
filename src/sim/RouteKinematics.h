@@ -13,7 +13,8 @@ struct KinematicState {
 
 // Route + t → 위치/고도/방위 (stateless)
 //  - 구간 내 대권 보간, 시간 = 구간 길이 / 구간 속력
-//  - t < 0 이면 시작점, 마지막 점 도달 후 정지 (TBD-8: 동선 종료 후 정지로 결정)
+//  - t < 0 이면 시작점, 열린 동선은 마지막 점 도달 후 정지 (TBD-8)
+//  - 루프 동선(전자전기)은 한 바퀴 시간으로 순환하며 계속 비행
 namespace RouteKinematics {
 
 KinematicState stateAt(const Route& route, double tSec);

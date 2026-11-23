@@ -244,6 +244,7 @@ ObjectId ScenarioModel::createJammer()
     JammerAircraft j;
     j.id = m_ids.next();
     j.name = QStringLiteral("전자전기");
+    j.route.closed = true;   // 전자전기 동선은 루프 (마지막 점 → 시작점 자동 연결)
     m_jammer = j;
     emit objectAdded(j.id);
     return j.id;
@@ -256,6 +257,7 @@ bool ScenarioModel::updateJammer(const JammerAircraft& jammer)
     if (!m_jammer || m_jammer->id != jammer.id)
         return false;
     m_jammer = jammer;
+    m_jammer->route.setClosed(true);
     for (int i = 0; i < m_jammer->route.segments.size(); ++i)
         m_jammer->route.segments[i] = Route::clamp(m_jammer->route.segments[i]);
     emit objectChanged(jammer.id);
@@ -526,6 +528,7 @@ bool ScenarioModel::replaceJammer(std::optional<JammerAircraft> jammer)
     }
     if (jammer) {
         jammer->id = m_ids.next();
+        jammer->route.setClosed(true);
         if (jammer->name.isEmpty())
             jammer->name = QStringLiteral("전자전기");
         m_jammer = std::move(jammer);

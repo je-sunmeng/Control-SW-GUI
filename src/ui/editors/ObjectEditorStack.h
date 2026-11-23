@@ -29,6 +29,7 @@ signals:
 
 private:
     void addEditor(ObjectEditorBase* editor);
+    void applyLock(bool locked);
 
     ScenarioModel& m_model;
     ObjectId m_current = 0;

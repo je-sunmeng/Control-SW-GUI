@@ -11,10 +11,10 @@ class MapView;
 class ScenarioModel;
 
 // 지도 편집 상태머신
-//   Idle ─(탐지기 추가)→ PlaceRadar ─click→ addRadar → Idle
+//   Idle ─(레이다 추가)→ PlaceRadar ─click→ addRadar → Idle
 //   Idle ─(편대/전자전기/이동표적 추가)→ DrawRoute ─click→ appendWaypoint (반복)
-//                                     ─더블클릭/Enter/우클릭→ 완료 → Idle
-//                                     ─Backspace→ 마지막 점 삭제
+//                                     ─더블클릭/Enter→ 완료 → Idle
+//                                     ─우클릭/Backspace→ 가장 최근 점 삭제
 //                                     ─Esc→ 취소(새로 만든 오브젝트이고 웨이포인트<2 이면 삭제)
 //   Idle ─(고정/잡음 표적 추가)→ PlacePoint ─click→ setPointPosition → Idle
 //   Idle ─ 핸들 드래그 → moveRadar / moveWaypoint (MapScene 에서 처리, 임무 중 금지)
@@ -50,6 +50,7 @@ private:
     void onDoubleClicked(const GeoPoint& pos);
     void onEditKey(int key);
     void onCursorMoved(const GeoPoint& pos);
+    void removeLastWaypoint();
     void updatePreview(const GeoPoint* cursor);
     void updateHint();
 

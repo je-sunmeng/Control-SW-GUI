@@ -165,7 +165,7 @@ void MapEditController::onMapClicked(const GeoPoint& pos, Qt::MouseButton button
         if (button == Qt::LeftButton)
             m_model.appendWaypoint(m_target, pos);
         else if (button == Qt::RightButton)
-            finish();
+            removeLastWaypoint();   // 가장 최근에 추가한 점 삭제
         break;
     case Mode::PlacePoint:
         if (button == Qt::LeftButton) {
@@ -198,14 +198,19 @@ void MapEditController::onEditKey(int key)
         finish();
         break;
     case Qt::Key_Backspace:
-        if (m_mode == Mode::DrawRoute) {
-            if (const Route* r = m_model.route(m_target); r && r->waypointCount() > 0)
-                m_model.removeWaypoint(m_target, r->waypointCount() - 1);
-        }
+        removeLastWaypoint();
         break;
     default:
         break;
     }
+}
+
+void MapEditController::removeLastWaypoint()
+{
+    if (m_mode != Mode::DrawRoute)
+        return;
+    if (const Route* r = m_model.route(m_target); r && r->waypointCount() > 0)
+        m_model.removeWaypoint(m_target, r->waypointCount() - 1);
 }
 
 void MapEditController::onCursorMoved(const GeoPoint& pos)
@@ -248,9 +253,10 @@ void MapEditController::updateHint()
     case Mode::DrawRoute: {
         const SimObject* o = m_model.find(m_target);
         const Route* r = m_model.route(m_target);
-        hint = QStringLiteral("[%1] 클릭으로 웨이포인트 추가 (%2개) — 더블클릭/Enter/우클릭: 완료, Backspace: 마지막 점 삭제, Esc: 취소")
+        hint = QStringLiteral("[%1] 클릭: 웨이포인트 추가 (%2개)%3 — 우클릭/Backspace: 최근 점 삭제, 더블클릭/Enter: 완료, Esc: 취소, 드래그: 지도 이동")
                    .arg(o ? o->name : QString())
-                   .arg(r ? r->waypointCount() : 0);
+                   .arg(r ? r->waypointCount() : 0)
+                   .arg(r && r->closed ? QStringLiteral(" · 루프: 마지막 점→시작점 자동 연결") : QString());
         break;
     }
     case Mode::PlacePoint: {

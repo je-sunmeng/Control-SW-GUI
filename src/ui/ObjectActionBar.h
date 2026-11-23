@@ -4,7 +4,7 @@
 
 #include <QWidget>
 
-// 오브젝트별 추가/저장/불러오기 버튼 + 시나리오 전체 새로/저장/불러오기
+// 오브젝트별 추가/저장/불러오기 버튼 + 시나리오 전체 초기화/저장/불러오기
 class ObjectActionBar : public QWidget {
     Q_OBJECT
 public:

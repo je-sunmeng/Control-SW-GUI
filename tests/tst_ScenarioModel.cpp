@@ -118,7 +118,8 @@ void TstScenarioModel::route_editing()
     QVERIFY(m.appendWaypoint(j, {37, 125}));
     QVERIFY(m.appendWaypoint(j, {37, 126}));
     QVERIFY(m.appendWaypoint(j, {38, 126}));
-    QCOMPARE(m.route(j)->segmentCount(), 2);
+    QVERIFY(m.route(j)->closed);                  // 전자전기 동선은 루프
+    QCOMPARE(m.route(j)->segmentCount(), 3);      // 마지막 점 → 시작점 구간 포함
     QCOMPARE(m.route(j)->segments[0], JammerAircraft::defaultSegment());
     QVERIFY(m.moveWaypoint(j, 1, {37.5, 126}));
     QCOMPARE(m.route(j)->waypoints[1].lat, 37.5);

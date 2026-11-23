@@ -93,11 +93,16 @@ void RouteSegmentTable::setRoute(const Route& route)
     if (m_table->rowCount() != rows)
         rebuild(rows);
     for (int i = 0; i < rows; ++i) {
-        const GeoPoint a = route.waypoints[i], b = route.waypoints[i + 1];
+        const int e = route.endIndex(i);
+        const GeoPoint a = route.waypoints[i], b = route.waypoints[e];
+        const bool closing = route.closed && e == 0;   // 루프의 되돌아오는 구간
         m_table->item(i, ColFrom)->setText(EditorUtil::formatGeo(a.lat, a.lon));
-        m_table->item(i, ColTo)->setText(EditorUtil::formatGeo(b.lat, b.lon));
+        m_table->item(i, ColTo)->setText(closing ? QStringLiteral("↺ 시작점") : EditorUtil::formatGeo(b.lat, b.lon));
         m_table->item(i, ColFrom)->setToolTip(QStringLiteral("WP%1").arg(i + 1));
-        m_table->item(i, ColTo)->setToolTip(QStringLiteral("WP%1 · 구간 %2 km").arg(i + 2).arg(route.segmentLengthKm(i), 0, 'f', 1));
+        m_table->item(i, ColTo)->setToolTip(QStringLiteral("WP%1%2 · 구간 %3 km")
+                                                .arg(e + 1)
+                                                .arg(closing ? QStringLiteral(" (시작점, 루프)") : QString())
+                                                .arg(route.segmentLengthKm(i), 0, 'f', 1));
         EditorUtil::setSilently(static_cast<QDoubleSpinBox*>(m_table->cellWidget(i, ColAlt)), route.segments[i].altitudeKm);
         EditorUtil::setSilently(static_cast<QDoubleSpinBox*>(m_table->cellWidget(i, ColSpeed)), route.segments[i].speedMps);
     }
@@ -107,7 +112,8 @@ void RouteSegmentTable::setRoute(const Route& route)
     else if (route.waypointCount() == 1)
         m_summary->setText(QStringLiteral("웨이포인트 1개 — 2개 이상 필요"));
     else
-        m_summary->setText(QStringLiteral("웨이포인트 %1개 · 총 %2 km · 소요 %3")
+        m_summary->setText(QStringLiteral("%1웨이포인트 %2개 · 총 %3 km · 소요 %4")
+                               .arg(route.closed ? QStringLiteral("루프(반복) · 한 바퀴 ") : QString())
                                .arg(route.waypointCount())
                                .arg(route.totalLengthKm(), 0, 'f', 1)
                                .arg(EditorUtil::formatDuration(route.totalDurationSec())));

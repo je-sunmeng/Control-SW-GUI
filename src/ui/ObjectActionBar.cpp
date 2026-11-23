@@ -33,7 +33,7 @@ ObjectActionBar::ObjectActionBar(QWidget* parent)
         QString label;
     };
     const Row rows[] = {
-        {ObjectType::Radar, QStringLiteral("탐지기")},
+        {ObjectType::Radar, QStringLiteral("레이다")},
         {ObjectType::Jammer, QStringLiteral("전자전기")},
         {ObjectType::Formation, QStringLiteral("아군편대")},
         {ObjectType::StandaloneFalseTarget, QStringLiteral("단독허위표적")},
@@ -61,7 +61,7 @@ ObjectActionBar::ObjectActionBar(QWidget* parent)
     g->addWidget(line, r++, 0, 1, 4);
 
     g->addWidget(new QLabel(QStringLiteral("시나리오"), this), r, 0);
-    auto* nw = button(QStringLiteral("새로"), QStringLiteral("모든 오브젝트 삭제"), this);
+    auto* nw = button(QStringLiteral("초기화"), QStringLiteral("모든 오브젝트를 삭제하고 시나리오 초기화"), this);
     auto* save = button(QStringLiteral("저장"), QStringLiteral("시나리오 전체 저장 (*.scenario.json)"), this);
     auto* load = button(QStringLiteral("불러오기"), QStringLiteral("시나리오 전체 불러오기 (현재 시나리오 교체)"), this);
     connect(nw, &QToolButton::clicked, this, &ObjectActionBar::newScenarioRequested);

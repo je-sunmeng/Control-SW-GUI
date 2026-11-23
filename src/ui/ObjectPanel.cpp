@@ -309,12 +309,13 @@ void ObjectPanel::onNewScenario()
 {
     if (m_model.isEmpty())
         return;
-    if (QMessageBox::question(this, QStringLiteral("새 시나리오"), QStringLiteral("모든 오브젝트를 삭제합니다. 계속할까요?"))
+    if (QMessageBox::question(this, QStringLiteral("시나리오 초기화"),
+                              QStringLiteral("모든 오브젝트를 삭제하고 초기화합니다. 계속할까요?"))
         != QMessageBox::Yes)
         return;
     m_edit.cancel();
     m_model.clear();
-    m_logger.info(QStringLiteral("새 시나리오"), kSource);
+    m_logger.info(QStringLiteral("시나리오 초기화"), kSource);
 }
 
 void ObjectPanel::onSaveScenario()

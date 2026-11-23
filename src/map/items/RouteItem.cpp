@@ -71,8 +71,10 @@ void RouteItem::sync(const ScenarioModel& model)
     // 대권 보간 폴리라인 (RouteKinematics 와 동일한 경로)
     QPainterPath p;
     m_labels.clear();
-    for (int i = 0; i + 1 < route->waypoints.size(); ++i) {
-        const GeoPoint a = route->waypoints[i], b = route->waypoints[i + 1];
+    // 루프 동선은 마지막 점 → 시작점 구간 포함
+    const int segs = route->expectedSegmentCount();
+    for (int i = 0; i < segs; ++i) {
+        const GeoPoint a = route->waypoints[i], b = route->waypoints[route->endIndex(i)];
         const double len = GeoUtils::distanceKm(a, b);
         const int n = std::max(1, int(std::ceil(len / DensifyStepKm)));
         if (i == 0)

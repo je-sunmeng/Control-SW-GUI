@@ -130,6 +130,15 @@ void TstMessageCodec::jammerRoute_roundTrip()
     QCOMPARE(back.route.segmentCount(), 2);
     QCOMPARE(back.route.segments[1].speedMps, 230.0);
     QCOMPARE(m.payload().size(), 2 + 3 * 24);
+
+    // 루프: 시작점을 마지막에 반복해 송신 → 수신 측에서 루프로 복원
+    m.route.setClosed(true);
+    QCOMPARE(m.payload().size(), 2 + 4 * 24);
+    const JammerRouteMsg loop = roundTrip(m);
+    QVERIFY(loop.route.closed);
+    QCOMPARE(loop.route.waypointCount(), 3);
+    QCOMPARE(loop.route.segmentCount(), 3);
+    QCOMPARE(loop.route.segments[2], m.route.segments[2]);
 }
 
 void TstMessageCodec::formationInfo_withAndWithoutJamming()

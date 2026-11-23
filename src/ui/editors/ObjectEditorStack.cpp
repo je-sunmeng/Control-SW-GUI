@@ -33,8 +33,9 @@ ObjectEditorStack::ObjectEditorStack(ScenarioModel& model, QWidget* parent)
             setObject(0);
     });
     connect(&m_model, &ScenarioModel::scenarioReset, this, [this] { setObject(0); });
-    connect(&m_model, &ScenarioModel::lockedChanged, this, [this](bool locked) { setEnabled(!locked); });
-    setEnabled(!m_model.isLocked());
+    // 임무 중: 값 편집만 막고 스크롤은 가능하도록 에디터 내용만 비활성화 (스크롤 영역은 활성 유지)
+    connect(&m_model, &ScenarioModel::lockedChanged, this, &ObjectEditorStack::applyLock);
+    applyLock(m_model.isLocked());
 }
 
 void ObjectEditorStack::addEditor(ObjectEditorBase* editor)
@@ -48,6 +49,12 @@ void ObjectEditorStack::addEditor(ObjectEditorBase* editor)
     m_pageOf.insert(editor, scroll);
     connect(editor, &ObjectEditorBase::redrawRouteRequested, this, &ObjectEditorStack::redrawRouteRequested);
     connect(editor, &ObjectEditorBase::placePointRequested, this, &ObjectEditorStack::placePointRequested);
+}
+
+void ObjectEditorStack::applyLock(bool locked)
+{
+    for (auto it = m_pageOf.cbegin(); it != m_pageOf.cend(); ++it)
+        it.key()->setEnabled(!locked);
 }
 
 void ObjectEditorStack::setObject(ObjectId id)

@@ -59,12 +59,12 @@ double MapView::pxPerKm() const
 
 double MapView::minPxPerKm() const
 {
-    // 데이터 영역 전체가 보이는 정도까지만 축소
+    // 지도 데이터 영역이 화면을 빈틈없이 채우는 배율까지만 축소 (지도 바깥 빈 공간이 보이지 않게)
     const QRectF d = m_mapScene->dataRect();
     const QSize v = viewport()->size();
     if (d.isEmpty() || v.isEmpty())
         return 0.01;
-    return 0.9 * std::min(v.width() / d.width(), v.height() / d.height());
+    return std::max(v.width() / d.width(), v.height() / d.height());
 }
 
 void MapView::zoomBy(double factor)
@@ -123,20 +123,28 @@ void MapView::wheelEvent(QWheelEvent* event)
 
 void MapView::mousePressEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::RightButton || event->button() == Qt::MiddleButton) {
+    const QPoint pos = event->position().toPoint();
+    if (event->button() == Qt::RightButton) {
+        // 우클릭: 이동 없음, 즉시 클릭으로 전달 (편집 중 마지막 웨이포인트 삭제/취소 등)
+        event->accept();
+        emit mapClicked(m_mapScene->projection().toGeo(mapToScene(pos)), Qt::RightButton, event->modifiers());
+        return;
+    }
+    if (event->button() == Qt::LeftButton && !m_editMode) {
+        // 편집 모드가 아니면 핸들(레이다/웨이포인트/표적) 위에서는 핸들 드래그
+        QGraphicsView::mousePressEvent(event);
+        if (scene()->mouseGrabberItem()) {
+            m_itemDrag = true;
+            return;
+        }
+    }
+    if (event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton) {
+        // 빈 곳: 끌면 지도 이동, 움직이지 않고 떼면 클릭
         m_panning = true;
         m_panMoved = false;
         m_panButton = event->button();
-        m_panStart = m_panLast = event->position().toPoint();
+        m_panStart = m_panLast = pos;
         event->accept();
-        return;
-    }
-    if (event->button() == Qt::LeftButton) {
-        if (!m_editMode)
-            QGraphicsView::mousePressEvent(event);   // 핸들 드래그/선택
-        event->accept();
-        emit mapClicked(m_mapScene->projection().toGeo(mapToScene(event->position().toPoint())), Qt::LeftButton,
-                        event->modifiers());
         return;
     }
     QGraphicsView::mousePressEvent(event);
@@ -167,7 +175,6 @@ void MapView::mouseMoveEvent(QMouseEvent* event)
             viewport()->setCursor(Qt::ClosedHandCursor);
         }
         if (m_panMoved) {
-            // 이동 중에는 손 커서, 끝나면 모드별 커서로 복귀
             const QPoint d = pos - m_panLast;
             horizontalScrollBar()->setValue(horizontalScrollBar()->value() - d.x());
             verticalScrollBar()->setValue(verticalScrollBar()->value() - d.y());
@@ -184,12 +191,14 @@ void MapView::mouseReleaseEvent(QMouseEvent* event)
     if (m_panning && event->button() == m_panButton) {
         m_panning = false;
         viewport()->setCursor(m_editMode ? Qt::CrossCursor : Qt::ArrowCursor);
-        if (!m_panMoved)
+        if (!m_panMoved && m_panButton == Qt::LeftButton)
             emit mapClicked(m_mapScene->projection().toGeo(mapToScene(event->position().toPoint())),
-                            event->button(), event->modifiers());
+                            Qt::LeftButton, event->modifiers());
         event->accept();
         return;
     }
+    if (m_itemDrag && event->button() == Qt::LeftButton)
+        m_itemDrag = false;
     QGraphicsView::mouseReleaseEvent(event);
 }
 

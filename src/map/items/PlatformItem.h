@@ -16,9 +16,11 @@ public:
     QRectF boundingRect() const override;
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 
-private:
-    void drawAircraft(QPainter* p, const QPointF& c, qreal s) const;
+    // 실루엣 (기수 = −y 방향, 크기 s = 기체 길이의 절반 px)
+    static QPainterPath airlinerPath(qreal s);
+    static QPainterPath fighterPath(qreal s);
 
+private:
     Kind m_kind;
     QColor m_color;
     QString m_label;

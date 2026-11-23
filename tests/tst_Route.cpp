@@ -1,6 +1,7 @@
 #include "common/GeoUtils.h"
 #include "model/JammingConfig.h"
 #include "model/Route.h"
+#include "sim/RouteKinematics.h"
 
 #include <QtTest>
 
@@ -13,7 +14,61 @@ private slots:
     void isValid_rules();
     void setSegment_clamps();
     void jammingConfig_resize();
+    void loop_segments();
+    void loop_kinematics_wraps();
 };
+
+void TstRoute::loop_segments()
+{
+    Route r;
+    r.closed = true;
+    r.addWaypoint({37, 125}, {9, 220});
+    QCOMPARE(r.segmentCount(), 0);
+    r.addWaypoint({37, 126});
+    QCOMPARE(r.segmentCount(), 2);     // 갔다가 되돌아오는 구간
+    QCOMPARE(r.endIndex(1), 0);
+    r.addWaypoint({38, 126});
+    QCOMPARE(r.segmentCount(), 3);
+    QVERIFY(r.isValid());
+    const double expected = GeoUtils::distanceKm({37, 125}, {37, 126}) + GeoUtils::distanceKm({37, 126}, {38, 126})
+                          + GeoUtils::distanceKm({38, 126}, {37, 125});
+    QVERIFY(qAbs(r.totalLengthKm() - expected) < 1e-9);
+
+    QVERIFY(r.removeWaypoint(1));
+    QCOMPARE(r.segmentCount(), 2);
+    QVERIFY(r.isValid());
+    QVERIFY(r.removeWaypoint(1));
+    QCOMPARE(r.segmentCount(), 0);     // 점 1개 → 구간 없음
+
+    Route open;
+    open.addWaypoint({37, 125});
+    open.addWaypoint({37, 126});
+    open.addWaypoint({38, 126});
+    open.setClosed(true);
+    QCOMPARE(open.segmentCount(), 3);
+    open.setClosed(false);
+    QCOMPARE(open.segmentCount(), 2);
+}
+
+void TstRoute::loop_kinematics_wraps()
+{
+    Route r;
+    r.closed = true;
+    r.addWaypoint({37.0, 127.0}, {5.0, 250.0});
+    r.addWaypoint({37.5, 127.0});
+    r.addWaypoint({37.5, 127.5});
+    const double lap = r.totalDurationSec();
+    QVERIFY(lap > 0);
+    const auto a = RouteKinematics::stateAt(r, 100.0);
+    const auto b = RouteKinematics::stateAt(r, 100.0 + 3 * lap);   // 3바퀴 뒤 같은 위치
+    QVERIFY(GeoUtils::distanceKm(a.pos, b.pos) < 1e-6);
+    QVERIFY(!b.finished);
+    QVERIFY(b.speedMps > 0);
+    // 되돌아오는 구간 중간: 마지막 점과 시작점 사이
+    const double t = lap - r.segmentDurationSec(2) / 2;
+    const auto c = RouteKinematics::stateAt(r, t);
+    QVERIFY(qAbs(GeoUtils::distanceKm(c.pos, {37.5, 127.5}) - r.segmentLengthKm(2) / 2) < 1e-3);
+}
 
 void TstRoute::addWaypoint_createsSegments()
 {

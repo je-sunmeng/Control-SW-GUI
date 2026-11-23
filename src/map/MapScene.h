@@ -4,6 +4,7 @@
 
 #include <QGraphicsScene>
 #include <QHash>
+#include <QSet>
 
 class MapLayerManager;
 class MapProjection;
@@ -25,7 +26,7 @@ class MapScene : public QGraphicsScene {
 public:
     // 지도 데이터 영역 (tools/map_prep 의 BBOX 와 동일)
     static constexpr double MinLat = 29.0, MaxLat = 46.0, MinLon = 116.0, MaxLon = 137.0;
-    static constexpr double SceneMarginKm = 400.0;
+    static constexpr double SceneMarginKm = 0.0;   // 이동 범위 = 지도 데이터 영역 (바깥 빈 공간 표시 안 함)
 
     MapScene(MapLayerManager& layers, const MapProjection& proj, QObject* parent = nullptr);
 
@@ -73,6 +74,7 @@ private:
     QHash<ObjectId, PlatformItem*> m_platforms;
     QVector<PlatformItem*> m_formationTargets;
     QList<DetectionMarkItem*> m_marks;
+    QSet<quint64> m_markKeys;   // (레이다, 위치 격자) 중복 표시 방지
     QHash<quint32, RandomGhostItem*> m_ghosts;
     QHash<quint64, NoiseSectorItem*> m_noiseSectors;   // (radarId << 32) | noiseId
 };

@@ -5,6 +5,7 @@
 #include "mission/MissionController.h"
 #include "model/ScenarioModel.h"
 #include "persistence/ObjectFileIO.h"
+#include "ui/WheelGuard.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -60,6 +61,7 @@ int main(int argc, char* argv[])
     parser.process(app);
 
     applyStyle(app);
+    app.installEventFilter(new WheelGuard(&app));   // 휠로 설정값 변경 금지 (스크롤로 전달)
 
     AppContext ctx;
     MainWindow window(ctx);
