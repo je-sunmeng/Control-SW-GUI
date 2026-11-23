@@ -10,7 +10,7 @@ ModeSelector::ModeSelector(QWidget* parent)
     , m_linked(new QRadioButton(QStringLiteral("연동"), this))
 {
     m_standalone->setToolTip(QStringLiteral("네트워크 미사용: 내부 MainLobe 생성·자체 탐지 판정, 배속/일시정지 가능"));
-    m_linked->setToolTip(QStringLiteral("분석SW·신호발생장치 연동: 수신 MainLobe 탐지결과 전시, 1배속 고정"));
+    m_linked->setToolTip(QStringLiteral("분석SW·재밍기법발생기 연동: 수신 MainLobe 탐지결과 전시, 1배속 고정"));
     m_standalone->setChecked(true);
     auto* l = new QHBoxLayout(this);
     l->setContentsMargins(0, 0, 0, 0);

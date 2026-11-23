@@ -148,12 +148,13 @@ void TstSimulationEngine::periodicEvents()
 {
     buildScenario();
     m_model->setDatalinkIntervalSec(0.5);
+    m_model->setJammerIntervalSec(2.0);
     QSignalSpy jam(m_engine.get(), &SimulationEngine::jammerPositionDue);
     QSignalSpy form(m_engine.get(), &SimulationEngine::formationPositionDue);
     QVERIFY(m_engine->start());   // t=0 에 1회씩
     for (int i = 1; i <= 50; ++i)   // 0.1 s 간격 (누적 오차 없이)
         m_engine->advanceTo(i / 10.0);
-    QCOMPARE(jam.count(), 6);    // 0,1,2,3,4,5
+    QCOMPARE(jam.count(), 3);    // 0,2,4 (전자전기 2 s 간격)
     QCOMPARE(form.count(), 11);  // 0,0.5,...,5
 }
 
@@ -202,6 +203,12 @@ void TstSimulationEngine::linked_restrictions()
     QCOMPARE(s.detections.size(), 1);
     QCOMPARE(s.detections[0].origin, DetectionOrigin::External);
     QVERIFY(m_engine->advanceTo(2.0).detections.isEmpty());   // 자체 판정 없음
+
+    // 연동모드: 최초 MainLobe 이후 수신은 빔을 다시 맞추지 않음 (계속 스캔)
+    const double azBefore = m_engine->advanceTo(3.0).beams[0].azimuthDeg;
+    m_engine->onExternalMainLobe(m_radar);
+    QCOMPARE(lobes.count(), 1);
+    QCOMPARE(m_engine->advanceTo(3.0).beams[0].azimuthDeg, azBefore);
 }
 
 void TstSimulationEngine::mission_actionsTable()
@@ -211,6 +218,7 @@ void TstSimulationEngine::mission_actionsTable()
     // 임무 전(단독), 시나리오 미완성 → 시작 불가
     MissionActions a = mc.actions();
     QVERIFY(!a.sendMission && !a.start && !a.pause && !a.stop && a.refresh && a.speed && a.modeChange);
+    QVERIFY(!a.sendMissionVisible);   // 단독모드: 임무전송 버튼 숨김
     buildScenario();
     QVERIFY(mc.actions().start);
 
@@ -232,6 +240,7 @@ void TstSimulationEngine::mission_actionsTable()
     QVERIFY(mc.setMode(RunMode::Linked));
     a = mc.actions();
     QVERIFY(!a.sendMission && !a.start && !a.speed && !a.pauseVisible);
+    QVERIFY(a.sendMissionVisible);
     mc.setDeviceConnected(DeviceCode::AnalysisSW, true);
     QVERIFY(!mc.actions().sendMission);
     mc.setDeviceConnected(DeviceCode::SignalGen, true);

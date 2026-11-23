@@ -19,7 +19,23 @@ private slots:
     void tableModel_ringBuffer();
     void tableModel_columns();
     void filterProxy_typeAndText();
+    void qtWarning_isInfoNotError();
 };
+
+void TstLogger::qtWarning_isInfoNotError()
+{
+    Logger logger;
+    logger.installQtMessageHandler();
+    QSignalSpy spy(&logger, &Logger::entryAdded);
+    qWarning("Unable to open monitor interface to \\\\.\\DISPLAY1: test");
+    QCOMPARE(spy.count(), 1);
+    const auto e = spy.first().first().value<LogEntry>();
+    QCOMPARE(e.type, LogType::Info);
+    QVERIFY(e.content.startsWith(QStringLiteral("Qt 경고:")));
+    qCritical("critical test");
+    QCOMPARE(spy.last().first().value<LogEntry>().type, LogType::Error);
+    Logger::uninstallQtMessageHandler();
+}
 
 void TstLogger::formatOpcode_layout()
 {
@@ -44,7 +60,7 @@ void TstLogger::logger_emitsEntries()
     logger.info(QStringLiteral("hello"), QStringLiteral("App"));
     logger.error(QStringLiteral("bad"));
     logger.tx(QStringLiteral("분석SW"), 0x21920001u, 12, QStringLiteral("RadarInfo"), QByteArray(20, '\0'));
-    logger.rx(QStringLiteral("신호발생장치"), 0xB1210100u, 4, QStringLiteral("MainLobe"));
+    logger.rx(QStringLiteral("재밍기법발생기"), 0xB1210100u, 4, QStringLiteral("MainLobe"));
     QCOMPARE(spy.count(), 4);
 
     const auto e2 = spy.at(2).at(0).value<LogEntry>();
@@ -133,7 +149,7 @@ void TstLogger::tableModel_columns()
     QCOMPARE(model.headerData(LogTableModel::ColOpcode, Qt::Horizontal).toString(), QStringLiteral("Opcode"));
 
     model.append({QDateTime::currentDateTime(), LogType::Info, QStringLiteral("App"), 0x1234u, 9, QStringLiteral("i"), {}});
-    model.append({QDateTime::currentDateTime(), LogType::Rx, QStringLiteral("신호발생장치"), 0xB1210100u, 9,
+    model.append({QDateTime::currentDateTime(), LogType::Rx, QStringLiteral("재밍기법발생기"), 0xB1210100u, 9,
                   QStringLiteral("r"), QByteArray::fromHex("B121010000000000")});
 
     // Info 행은 Opcode/크기를 표시하지 않음
@@ -153,7 +169,7 @@ void TstLogger::filterProxy_typeAndText()
     model.append({now, LogType::Info, QStringLiteral("App"), 0, 0, QStringLiteral("시작"), {}});
     model.append({now, LogType::Error, QStringLiteral("Net"), 0, 0, QStringLiteral("접속 실패"), {}});
     model.append({now, LogType::Tx, QStringLiteral("분석SW"), 0x21920001u, 4, QStringLiteral("RadarInfo"), {}});
-    model.append({now, LogType::Rx, QStringLiteral("신호발생장치"), 0xB1210100u, 4, QStringLiteral("MainLobe"), {}});
+    model.append({now, LogType::Rx, QStringLiteral("재밍기법발생기"), 0xB1210100u, 4, QStringLiteral("MainLobe"), {}});
 
     LogFilterProxyModel proxy;
     proxy.setSourceModel(&model);

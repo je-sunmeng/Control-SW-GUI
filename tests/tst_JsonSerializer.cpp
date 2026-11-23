@@ -175,6 +175,7 @@ void TstJsonSerializer::files_scenarioRoundTrip()
     const ObjectId ft = m.addFalseTarget(FalseTargetType::Fixed);
     m.setPointPosition(ft, {36.5, 126.5});
     m.setDatalinkIntervalSec(0.5);
+    m.setJammerIntervalSec(3.0);
 
     const QString path = m_dir.filePath(QStringLiteral("s.scenario.json"));
     QString err;
@@ -193,6 +194,7 @@ void TstJsonSerializer::files_scenarioRoundTrip()
     QCOMPARE(m2.falseTargets().size(), 1);
     QVERIFY(m2.falseTargets().first().posSet);
     QCOMPARE(m2.datalinkIntervalSec(), 0.5);
+    QCOMPARE(m2.jammerIntervalSec(), 3.0);
     QVERIFY(m2.validate());
 }
 

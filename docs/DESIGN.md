@@ -21,7 +21,7 @@
 1. **계층 분리**: Model(데이터) / Map(전시) / Sim(시뮬레이션 엔진) / Net(통신) / UI(위젯) / Persistence(저장).
 2. **UI는 Model을 직접 수정하지 않고** `ScenarioModel`의 API와 시그널을 통해서만 변경 → 지도·목록·설정패널 자동 동기화.
 3. **메시지 확장성**: Command Code 값은 외부 매핑 파일(`protocol.json`)로 분리하고, 메시지는 `IMessage` 인터페이스 + `MessageFactory` 레지스트리로 추가.
-4. **모드 독립성**: 단독모드에서는 `NetworkManager`가 아예 동작하지 않으며, MainLobe 시점/탐지 결과는 엔진이 내부 생성. 연동모드에서는 신호발생장치의 MainLobe 탐지결과 메시지를 그대로 사용.
+4. **모드 독립성**: 단독모드에서는 `NetworkManager`가 아예 동작하지 않으며, MainLobe 시점/탐지 결과는 엔진이 내부 생성. 연동모드에서는 재밍기법발생기의 MainLobe 탐지결과 메시지를 그대로 사용.
 5. **시간 관리 일원화**: 모든 이동/빔 회전은 `SimClock`의 시뮬레이션 시간(sec)으로 계산(배속은 Clock만 영향).
 6. **일시정지는 단독모드 전용**: 연동모드에서는 일시정지/재개 불가(타 장비로 일시정지 명령 송신 없음).
 
@@ -143,7 +143,7 @@ Control-SW-GUI/
 │       │   └── FalseTargetTypeDialog.h/.cpp # 단독허위표적 추가 시 타입 선택
 │       ├── ControlPanel.h/.cpp        # 우측 전체 컨테이너
 │       ├── ModeSelector.h/.cpp        # 단독/연동 라디오
-│       ├── DeviceStatusWidget.h/.cpp  # 분석SW/신호발생장치 연결 상태
+│       ├── DeviceStatusWidget.h/.cpp  # 분석SW/재밍기법발생기 연결 상태
 │       ├── MainLobeLampWidget.h/.cpp  # 레이다별 램프(수신 시 점등 후 감쇠)
 │       ├── SimControlWidget.h/.cpp    # 상태 표기 + 임무전송/시작(재개)/일시정지(단독 전용)/중지/새로고침
 │       ├── SpeedSelector.h/.cpp       # 1/2/4/8 배속
@@ -166,16 +166,16 @@ Control-SW-GUI/
 
 | 파일 | 방향 | 설명 |
 |---|---|---|
-| `MissionRadarInfoMsg` | 제어 → 분석SW, 신호발생 | 레이다 전체 정보 (N개) |
+| `MissionRadarInfoMsg` | 제어 → 분석SW, 재밍기법발생기 | 레이다 전체 정보 (N개) |
 | `MissionJammerRouteMsg` | 제어 → 분석SW | 전자전기 동선 |
-| `MissionFormationMsg` | 제어 → 분석SW, 신호발생 | 아군편대 동선 (+신호발생에는 교란설정 포함) |
-| `MissionFalseTargetMsg` | 제어 → 신호발생 | 단독허위표적 전체 |
+| `MissionFormationMsg` | 제어 → 분석SW, 재밍기법발생기 | 아군편대 동선 (+재밍기법발생기에는 교란설정 포함) |
+| `MissionFalseTargetMsg` | 제어 → 재밍기법발생기 | 단독허위표적 전체 |
 | `MissionStartMsg` | 제어 → 분석SW | 임무시작 |
-| `MissionStartSigGenMsg` | 제어 → 신호발생 | 임무시작 + 편대 시작위치 + 전자전기 시작위치 |
+| `MissionStartSigGenMsg` | 제어 → 재밍기법발생기 | 임무시작 + 편대 시작위치 + 전자전기 시작위치 |
 | `MissionStopMsg` | 제어 → 양쪽 | 임무종료 |
-| `JammerPositionMsg` | 제어 → 신호발생 | 1초 주기 전자전기 현재위치 |
-| `FormationPositionMsg` | 제어 → 신호발생 | 데이터링크 간격 주기 편대 현재위치 |
-| `MainLobeNotifyMsg` | 신호발생 → 제어 | 레이다별 MainLobe 탐색 시점 + 탐지결과(연동모드 탐지 전시의 원천) |
+| `JammerPositionMsg` | 제어 → 재밍기법발생기 | 1초 주기 전자전기 현재위치 |
+| `FormationPositionMsg` | 제어 → 재밍기법발생기 | 데이터링크 간격 주기 편대 현재위치 |
+| `MainLobeNotifyMsg` | 재밍기법발생기 → 제어 | 레이다별 MainLobe 탐색 시점 + 탐지결과(연동모드 탐지 전시의 원천) |
 | `HeartbeatMsg` (선택) | 양방향 | 연결/식별 확인 |
 | `RawMessage` | — | 미등록 Opcode 수신 시 로그용 (hex dump) |
 
@@ -335,7 +335,7 @@ public:
 - 결과: `QVector<Detection>` (origin = Local)
 
 **`ExternalDetectionSource`** (연동모드)
-- 연동모드의 탐지결과 = **신호발생장치로부터 수신한 MainLobe 탐지결과 메시지**
+- 연동모드의 탐지결과 = **재밍기법발생기로부터 수신한 MainLobe 탐지결과 메시지**
 - `NetworkManager` → `MissionController`가 `MainLobeNotifyMsg`를 `push(const MainLobeNotifyMsg&)`로 큐잉 → 다음 틱 `collect()`에서 `Detection`(origin = External)으로 변환
 - 같은 메시지로 `RadarScanner::onMainLobe()` 동기화 및 램프 점등 (메시지 1개 → 빔 동기화 + 램프 + 탐지 전시)
 - 자체 계산 없음(잡음섹터/랜덤 고스트는 전시용으로만 유지). 메시지 필드(탐지 위치 포함 여부 등)는 ICD 협의 결과에 따름
@@ -399,13 +399,13 @@ public:
 
 | 동작 | 처리 |
 |---|---|
-| `sendMission()` | (연동 & 양 장치 연결 시만) 분석SW: RADAR_INFO, JAMMER_ROUTE, FORMATION_INFO / 신호발생: RADAR_INFO, FORMATION_INFO, FALSE_TARGET_INFO → `missionSent=true` |
-| `start()` | 시나리오 검증 → 분석SW: START / 신호발생: START(+시작위치) → `engine.start()` → `model.setLocked(true)` |
+| `sendMission()` | (연동 & 양 장치 연결 시만) 분석SW: RADAR_INFO, JAMMER_ROUTE, FORMATION_INFO / 재밍기법발생기: RADAR_INFO, FORMATION_INFO, FALSE_TARGET_INFO → `missionSent=true` |
+| `start()` | 시나리오 검증 → 분석SW: START / 재밍기법발생기: START(+시작위치) → `engine.start()` → `model.setLocked(true)` |
 | `pause()` | **단독모드 전용** → `engine.pause()` (메시지 송신 없음); 시작 버튼 텍스트 "재개" |
 | `resume()` | **단독모드 전용** → `engine.resume()` |
 | `stop()` | 양 장치 STOP → `engine.stop()` |
 | `refresh()` | Stopped면 즉시 초기화 / 아니면 `QMessageBox` 예·아니요 → 예: `stop()` 후 초기화 (초기화 = 엔진 reset, 동적아이템 제거, 모델 잠금 해제, 상태 PreMission; 오브젝트 설정 유지 여부는 **TBD**, 기본은 유지) |
-| 엔진 `jammerPositionDue` / `formationPositionDue` | 연동모드일 때 신호발생장치로 위치 메시지 송신 |
+| 엔진 `jammerPositionDue` / `formationPositionDue` | 연동모드일 때 재밍기법발생기로 위치 메시지 송신 |
 | 수신 `MainLobeNotify` | `RadarScanner::onMainLobe()` + `ExternalDetectionSource::push()` + `MainLobeLampWidget` 점등 |
 
 **버튼 활성화 규칙** (`updateActions()`가 상태 변경 시 일괄 계산)
@@ -435,7 +435,7 @@ public:
 │ │ActionBar │ │                         MapView                                │ │ ○단독 ○연동    │ │
 │ │추가/저장/│ │                     (QGraphicsView)                            │ ├ DeviceStatus ──┤ │
 │ │불러오기  │ │                                                                │ │ 분석SW  ●      │ │
-│ ├──────────┤ │                                                                │ │ 신호발생 ●     │ │
+│ ├──────────┤ │                                                                │ │ 재밍기법발생기 ●     │ │
 │ │데이터링크│ │                                                                │ ├ MainLobe Lamp ─┤ │
 │ │전송간격  │ │                                                                │ │ R1● R2● R3● R4●│ │
 │ ├──────────┤ │                                                                │ ├ SimControl ────┤ │
@@ -483,10 +483,10 @@ MainWindow
 ## 6. 시퀀스 (요약)
 
 **연동모드 임무 수행**
-1. 분석SW / 신호발생장치 접속 → `deviceConnectionChanged` → 램프 녹색, 둘 다 연결 시 [임무전송] 활성
+1. 분석SW / 재밍기법발생기 접속 → `deviceConnectionChanged` → 램프 녹색, 둘 다 연결 시 [임무전송] 활성
 2. [임무전송] → 메시지 송신 (Tx 로그) → [시작] 활성
 3. [시작] → START 송신 → 엔진 시작, 1초/데이터링크 주기 위치 송신
-4. 신호발생장치 `MainLobeNotify` 수신 → 해당 레이다 램프 점등, 빔 동기화(전자전기 방향 기준) 후 회전 전시, 메시지의 탐지결과를 지도에 전시
+4. 재밍기법발생기 `MainLobeNotify` 수신 → 해당 레이다 램프 점등, 빔 동기화(전자전기 방향 기준) 후 회전 전시, 메시지의 탐지결과를 지도에 전시
 5. (연동모드에서는 일시정지 불가)
 6. [중지] → STOP 송신, 엔진 정지 → [새로고침] → 초기 상태
 
@@ -531,7 +531,7 @@ MainWindow
 | M3 | Model + 오브젝트 패널 + 지도 편집(배치/동선/드래그) + 저장/불러오기 | 시나리오 작성 가능 |
 | M4 | 시뮬레이션 엔진(단독모드): 이동, 빔, 허위타겟, 탐지, 랜덤, 잡음섹터, 배속 | 단독 시연 가능 |
 | M5 | 네트워크: 서버, 프레임, 메시지, 연동 상태, 임무전송/제어/주기송신, MainLobe 수신 | 테스트 클라이언트와 연동 |
-| M6 | 테스트용 모의 클라이언트(분석SW/신호발생장치 에뮬레이터, `tools/mock_client`), Windows 빌드/배포 점검 | ThinkPad 실행 확인 |
+| M6 | 테스트용 모의 클라이언트(분석SW/재밍기법발생기 에뮬레이터, `tools/mock_client`), Windows 빌드/배포 점검 | ThinkPad 실행 확인 |
 
 ---
 
@@ -552,12 +552,13 @@ MainWindow
 | 2026-11-20 | Command Code는 타 장비 협의 후 결정 → 외부 매핑(`protocol.json`) 기반 확장 설계 |
 | 2026-11-20 | 일시정지/재개는 **단독모드 전용** (PAUSE 메시지 삭제) |
 | 2026-11-20 | 아군편대 허위타겟 이격거리는 **고정** |
-| 2026-11-20 | 연동모드 탐지결과 = 신호발생장치로부터 **수신한 MainLobe 탐지결과 메시지** |
+| 2026-11-20 | 연동모드 탐지결과 = 재밍기법발생기로부터 **수신한 MainLobe 탐지결과 메시지** |
 | 2026-11-21 | 지도 데이터는 Natural Earth 10m 단일 출처(Public Domain), Python 표준 라이브러리 전처리(`tools/map_prep`). 군사분계선·DMZ도 Natural Earth 사용, 한반도 주요 산은 직접 입력. 시군구(`kr_admin2`)는 보류 |
+| 2026-11-23 | v0.4.0 사용자 요청 반영: 저장 폴더 종류별 분리(<기본>/<종류>, 종류별 마지막 폴더 기억), 데이터링크 구역을 제어 패널(연동모드 전용)로 이동 + 전자전기 위치 전송간격(시나리오 저장), Qt 경고 로그 수준 정보로 하향(Windows EDID 조회 실패 경고는 무해), 독도 윤곽·섬 라벨 추가, **연동모드 MainLobe 최초 1회만 빔 동기화·램프 래치**, 미수신 레이다 이름 어둡게, 램프 순서 = 목록 순서, 단독모드 임무전송 버튼 숨김, 명칭 "신호발생장치" → "재밍기법발생기" |
 | 2026-11-23 | v0.3.0 사용자 요청 반영: 동선/허위타겟 테이블 높이 = 행 수(최대 6/8), 동선 테이블 열 = 구간(WP→WP)·고도·속력, 기본 저장 폴더 문서/CtrlSW + 기본 파일명 <종류>_yyyyMMdd_HHmm, 지도 뷰 resizeAnchor = NoAnchor(로그창 크기 변경 시 지도 고정), 스핀박스/콤보 버튼 SVG 화살표, **아군편대 동선 종료 → 임무 자동 종료**(연동 STOP 포함), 편대 아이콘 축소·허위타겟 상위 z, 랜덤 표적 = 확산 점선 링 블립, 스핀/콤보 포커스 StrongFocus(휠로 선택 안 됨) |
 | 2026-11-23 | v0.2.0 사용자 요청 반영: 전자전기 동선 루프(Route.closed, 마지막→시작 구간 자동, 반복 비행), 동선 입력 중 우클릭 = 최근 점 삭제(완료는 더블클릭/Enter), 지도 이동 = 좌클릭 드래그, 최대 축소 = 지도가 화면을 채우는 배율·이동 범위 = 지도 영역, 탐지 지점 페이딩 없이 유지(~200 m 격자 중복 제거, 최대 5000), 메인로브 저채도, 전자전기 = 여객기·편대 = 전투기 형상, 설정값 휠 변경 금지, 임무 중 설정창 스크롤 허용, "탐지기"→"레이다", "새로"→"초기화" |
 | 2026-11-22 | M6: 모의 클라이언트는 core 라이브러리(메시지·판정 로직)를 재사용하는 콘솔 도구 `ctrlsw_mock`. Windows 빌드 점검은 GitHub Actions(Qt 6.8.3, MSVC+Ninja)로 수행, windeployqt 배포 폴더를 아티팩트로 제공 |
-| 2026-11-22 | M5 프로토콜 임시안: 위경도 f64·그 외 f32, 장치 식별 = 첫 프레임 Src(클라이언트는 접속 직후 Heartbeat), MissionStartMsg/MissionStartSigGenMsg 는 목적지 플래그(`withStartPositions`)로 단일 클래스 통합, FormationInfo 는 `hasJamming` 플래그(분석SW 0/신호발생 1). 상세 [ICD.md](ICD.md) |
+| 2026-11-22 | M5 프로토콜 임시안: 위경도 f64·그 외 f32, 장치 식별 = 첫 프레임 Src(클라이언트는 접속 직후 Heartbeat), MissionStartMsg/MissionStartSigGenMsg 는 목적지 플래그(`withStartPositions`)로 단일 클래스 통합, FormationInfo 는 `hasJamming` 플래그(분석SW 0/재밍기법발생기 1). 상세 [ICD.md](ICD.md) |
 | 2026-11-22 | M5 동작: 모드=연동 시 서버 listen, 단독 전환 시 close. 같은 장치 중복 접속 시 이전 연결 종료. 장치 연결 해제 시 임무전송 플래그 초기화(재전송 필요). MainLobeNotify 는 임무 중에만 반영, 알 수 없는 radarId 는 오류 로그 후 무시 |
 | 2026-11-22 | M4 탐지 판정: 틱마다 `|방위−빔방위| ≤ 빔폭/2` 비교 대신 **빔 중심이 직전→현재 방위 호를 통과**했는지로 판정 (8배속 틱당 ~9.5° 회전에도 1회전 1회 탐지 보장, 한 틱에 180° 초과 회전 시 판정 생략) |
 | 2026-11-22 | M4 단독모드 MainLobe: t=0 및 매 스캔주기 시점의 전자전기 방위로 재동기화. 잡음섹터는 거리와 무관하게 모든 레이다에 적용. 랜덤 고스트: 레이다별 0.5~2.5 s 간격 생성, 수명 1~3 s, 탐지범위 내 면적 균등 분포 |

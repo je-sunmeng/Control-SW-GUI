@@ -44,7 +44,7 @@ public:
     void reset();
     bool setSpeedFactor(int factor);   // 연동모드는 1 고정
 
-    // 연동모드: 신호발생장치 MainLobe 수신 → 빔 동기화 (az = 레이다→현재 전자전기 방위)
+    // 연동모드: 재밍기법발생기 MainLobe 최초 수신 → 빔 동기화 (az = 레이다→현재 전자전기 방위), 이후 수신은 무시
     void onExternalMainLobe(ObjectId radarId);
 
     // 테스트/수동 구동: 시뮬레이션 시간 t 의 상태 계산 및 시그널 발생

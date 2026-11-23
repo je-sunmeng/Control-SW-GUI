@@ -1,10 +1,10 @@
-// 제어SW 연동 시험용 모의 클라이언트 (분석SW / 신호발생장치 에뮬레이터)
+// 제어SW 연동 시험용 모의 클라이언트 (분석SW / 재밍기법발생기 에뮬레이터)
 //
 //   ctrlsw_mock [--host 127.0.0.1] [--port 50021] [--device both|analysis|siggen]
 //               [--protocol protocol.json] [--no-detections]
 //
 // 제어SW 를 연동모드로 두고 실행하면 두 장치로 접속 → [임무전송] → [시작] 시
-// 신호발생장치가 레이다별 스캔주기마다 MainLobeNotify(+탐지결과) 를 보냅니다.
+// 재밍기법발생기가 레이다별 스캔주기마다 MainLobeNotify(+탐지결과) 를 보냅니다.
 #include "MockDevice.h"
 
 #include "common/Constants.h"
@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationVersion(QStringLiteral(CTRLSW_VERSION));
 
     QCommandLineParser p;
-    p.setApplicationDescription(QStringLiteral("CtrlSW 모의 클라이언트 (분석SW 0x92 / 신호발생장치 0xB1)"));
+    p.setApplicationDescription(QStringLiteral("CtrlSW 모의 클라이언트 (분석SW 0x92 / 재밍기법발생기 0xB1)"));
     p.addHelpOption();
     p.addVersionOption();
     QCommandLineOption hostOpt(QStringLiteral("host"), QStringLiteral("제어SW 주소"), QStringLiteral("host"), QStringLiteral("127.0.0.1"));

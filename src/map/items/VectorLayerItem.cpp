@@ -70,6 +70,10 @@ void VectorLayerItem::paintPoints(QPainter* painter, double lod) const
     painter->setBrush(c);
     for (const VectorLayer::PointFeature& p : m_layer.points()) {
         const QPointF d = xf.map(p.scenePos);
+        if (st.pointSymbol == LayerStyle::PointSymbol::Circle) {
+            painter->drawEllipse(d, s * 0.65, s * 0.65);
+            continue;
+        }
         const QPolygonF tri{QPointF(d.x(), d.y() - s), QPointF(d.x() - s, d.y() + s * 0.8),
                             QPointF(d.x() + s, d.y() + s * 0.8)};
         painter->drawPolygon(tri);

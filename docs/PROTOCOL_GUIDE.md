@@ -1,6 +1,6 @@
 # Command Code / 메시지 확장 설계 및 작성 가이드
 
-> Command Code와 payload는 **타 장비(분석SW 0x92, 신호발생장치 0xB1)와 협의 후 결정**합니다.
+> Command Code와 payload는 **타 장비(분석SW 0x92, 재밍기법발생기 0xB1)와 협의 후 결정**합니다.
 > 이 문서는 값이 정해지지 않은 상태에서도 개발을 진행하고, 협의 결과를 **최소 수정**으로 반영하기 위한 구조와 절차를 정의합니다.
 
 ---
@@ -134,7 +134,7 @@ bool RadarInfoMsg::readPayload(ByteReader& r) { /* write와 같은 순서 */ ret
 타 장비와 협의할 때 아래 양식으로 메시지별 표를 만들어 공유합니다.
 
 ```markdown
-### MissionStart (제어SW 0x21 → 신호발생장치 0xB1)
+### MissionStart (제어SW 0x21 → 재밍기법발생기 0xB1)
 - Opcode: 0x21B1 ____ (Command Code: 협의)
 - 송신 시점: [시작] 버튼 클릭 시 1회
 - DataSize: 고정 __ bytes

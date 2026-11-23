@@ -5,7 +5,7 @@
 
 #include <QVector>
 
-// 제어 → 신호발생: 단독허위표적 전체
+// 제어 → 재밍기법발생기: 단독허위표적 전체
 //   count(u8) + [id(u32), type(u8 0=고정 1=이동 2=랜덤 3=잡음), 타입별 필드]
 //     고정: lat(f64), lon(f64)
 //     이동: route(RouteCodec)

@@ -1,5 +1,6 @@
 #include "ControlPanel.h"
 
+#include "DataLinkWidget.h"
 #include "DeviceStatusWidget.h"
 #include "MainLobeLampWidget.h"
 #include "ModeSelector.h"
@@ -31,6 +32,8 @@ ControlPanel::ControlPanel(MissionController& mission, SimulationEngine& engine,
     , m_engine(engine)
     , m_mode(new ModeSelector(this))
     , m_devices(new DeviceStatusWidget(this))
+    , m_dataLink(new DataLinkWidget(model, this))
+    , m_dataLinkBox(nullptr)
     , m_lamps(new MainLobeLampWidget(model, this))
     , m_control(new SimControlWidget(this))
     , m_speed(new SpeedSelector(this))
@@ -43,6 +46,8 @@ ControlPanel::ControlPanel(MissionController& mission, SimulationEngine& engine,
     layout->setSpacing(6);
     layout->addWidget(section(QStringLiteral("운용 모드"), m_mode, this));
     layout->addWidget(section(QStringLiteral("장치 연결 상태"), m_devices, this));
+    m_dataLinkBox = section(QStringLiteral("데이터링크"), m_dataLink, this);
+    layout->addWidget(m_dataLinkBox);
     layout->addWidget(section(QStringLiteral("MainLobe"), m_lamps, this));
     layout->addWidget(section(QStringLiteral("시뮬레이션 제어"), m_control, this));
     layout->addWidget(section(QStringLiteral("배속"), m_speed, this));
@@ -71,6 +76,17 @@ ControlPanel::ControlPanel(MissionController& mission, SimulationEngine& engine,
     connect(&m_engine, &SimulationEngine::snapshotReady, this,
             [this](const SimSnapshot& s) { m_control->setSimTime(s.simTime); });
     connect(&m_engine, &SimulationEngine::mainLobeSynced, m_lamps, &MainLobeLampWidget::onMainLobe);
+    connect(&m_mission, &MissionController::modeChanged, m_lamps,
+            [this](RunMode m) { m_lamps->setLinked(m == RunMode::Linked); });
+    connect(&m_engine, &SimulationEngine::stateChanged, m_lamps, [this](SimState s) {
+        if (s == SimState::PreMission)
+            m_lamps->resetMission();   // 새로고침 → 모두 소등
+    });
+    m_lamps->setLinked(m_mission.mode() == RunMode::Linked);
+    // 데이터링크 구역: 연동모드에서만 (장치 연결 상태 아래)
+    connect(&m_mission, &MissionController::modeChanged, m_dataLinkBox,
+            [this](RunMode m) { m_dataLinkBox->setVisible(m == RunMode::Linked); });
+    m_dataLinkBox->setVisible(m_mission.mode() == RunMode::Linked);
     connect(&m_mission, &MissionController::modeChanged, this,
             [this](RunMode m) { m_devices->setNetworkActive(m == RunMode::Linked); });
 

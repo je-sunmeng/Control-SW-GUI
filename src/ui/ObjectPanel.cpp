@@ -25,7 +25,7 @@
 
 namespace {
 const QString kSource = QStringLiteral("Scenario");
-const QString kLastDirKey = QStringLiteral("paths/objectFiles");
+const QString kLastDirGroup = QStringLiteral("paths/lastByKind");   // 종류별 마지막 사용 폴더
 const QString kDefaultDirKey = QStringLiteral("paths/defaultFolder");
 
 QGroupBox* boxed(const QString& title, QWidget* content, QWidget* parent)
@@ -44,20 +44,12 @@ ObjectPanel::ObjectPanel(ScenarioModel& model, MapEditController& edit, Logger& 
     , m_edit(edit)
     , m_logger(logger)
     , m_actions(new ObjectActionBar(this))
-    , m_datalink(EditorUtil::makeSpin(ScenarioModel::MinDatalinkIntervalSec, ScenarioModel::MaxDatalinkIntervalSec, 1,
-                                      QStringLiteral("s"), 0.1, this))
     , m_list(new ObjectListView(model, this))
     , m_editors(new ObjectEditorStack(model, this))
 {
     setObjectName(QStringLiteral("ObjectPanel"));
     setMinimumWidth(300);
 
-    m_datalink->setValue(m_model.datalinkIntervalSec());
-    m_datalink->setToolTip(QStringLiteral("연동모드에서 아군편대 현재위치를 신호발생장치로 보내는 주기"));
-    auto* dlWidget = new QWidget(this);
-    auto* dlForm = new QFormLayout(dlWidget);
-    dlForm->setContentsMargins(0, 0, 0, 0);
-    dlForm->addRow(QStringLiteral("편대 위치 전송간격"), m_datalink);
 
     auto* split = new QSplitter(Qt::Vertical, this);
     split->setChildrenCollapsible(false);
@@ -72,7 +64,6 @@ ObjectPanel::ObjectPanel(ScenarioModel& model, MapEditController& edit, Logger& 
     layout->setContentsMargins(4, 4, 4, 4);
     layout->setSpacing(6);
     layout->addWidget(boxed(QStringLiteral("오브젝트"), m_actions, this));
-    layout->addWidget(boxed(QStringLiteral("데이터링크"), dlWidget, this));
     layout->addWidget(split, 1);
 
     // 버튼
@@ -83,10 +74,6 @@ ObjectPanel::ObjectPanel(ScenarioModel& model, MapEditController& edit, Logger& 
     connect(m_actions, &ObjectActionBar::saveScenarioRequested, this, &ObjectPanel::onSaveScenario);
     connect(m_actions, &ObjectActionBar::loadScenarioRequested, this, &ObjectPanel::onLoadScenario);
 
-    // 데이터링크 간격 ↔ 모델
-    connect(m_datalink, &QDoubleSpinBox::valueChanged, &m_model, &ScenarioModel::setDatalinkIntervalSec);
-    connect(&m_model, &ScenarioModel::datalinkIntervalChanged, this,
-            [this](double v) { EditorUtil::setSilently(m_datalink, v); });
 
     // 목록 ↔ 에디터
     connect(m_list, &ObjectListView::objectSelected, m_editors, &ObjectEditorStack::setObject);
@@ -119,7 +106,6 @@ void ObjectPanel::selectObject(ObjectId id)
 void ObjectPanel::onLockedChanged(bool locked)
 {
     m_actions->setEditingEnabled(!locked);
-    m_datalink->setEnabled(!locked);
 }
 
 // ---------------------------------------------------------------------------- 추가
@@ -204,10 +190,17 @@ QString ObjectPanel::defaultFileName(const QString& kind, const QString& suffix,
     return QStringLiteral("%1_%2.%3").arg(kind, when.toString(QStringLiteral("yyyyMMdd_HHmm")), suffix);
 }
 
-QString ObjectPanel::startFolder()
+QString ObjectPanel::kindFolder(const QString& kind)
 {
-    const QString last = QSettings().value(kLastDirKey).toString();
-    return !last.isEmpty() && QDir(last).exists() ? last : defaultFolder();
+    const QString dir = QDir(defaultFolder()).filePath(kind);
+    QDir().mkpath(dir);
+    return dir;
+}
+
+QString ObjectPanel::startFolder(const QString& kind)
+{
+    const QString last = QSettings().value(kLastDirGroup + QLatin1Char('/') + kind).toString();
+    return !last.isEmpty() && QDir(last).exists() ? last : kindFolder(kind);
 }
 
 void ObjectPanel::chooseDefaultFolder()
@@ -217,20 +210,20 @@ void ObjectPanel::chooseDefaultFolder()
         return;
     QSettings s;
     s.setValue(kDefaultDirKey, dir);
-    s.setValue(kLastDirKey, dir);   // 다음 저장/불러오기도 이 폴더에서 시작
+    s.remove(kLastDirGroup);   // 종류별 마지막 폴더 초기화 → 새 기본 폴더의 종류별 하위 폴더에서 시작
     m_logger.info(QStringLiteral("기본 저장 폴더: %1").arg(QDir::toNativeSeparators(dir)), kSource);
 }
 
 void ObjectPanel::openDefaultFolder()
 {
-    QDesktopServices::openUrl(QUrl::fromLocalFile(startFolder()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(defaultFolder()));
 }
 
 QString ObjectPanel::askSavePath(const QString& title, const QString& filter, const QString& suffix, const QString& kind)
 {
     QSettings s;
     // 기본 위치/이름: <마지막 폴더 또는 기본 폴더>/<종류>_<날짜_시각>.<확장자>
-    const QString initial = QDir(startFolder()).filePath(defaultFileName(kind, suffix, QDateTime::currentDateTime()));
+    const QString initial = QDir(startFolder(kind)).filePath(defaultFileName(kind, suffix, QDateTime::currentDateTime()));
     QString path = QFileDialog::getSaveFileName(this, title, initial, filter);
     if (path.isEmpty())
         return {};
@@ -239,16 +232,16 @@ QString ObjectPanel::askSavePath(const QString& title, const QString& filter, co
             path.chop(5);
         path += QLatin1Char('.') + suffix;
     }
-    s.setValue(kLastDirKey, QFileInfo(path).absolutePath());
+    s.setValue(kLastDirGroup + QLatin1Char('/') + kind, QFileInfo(path).absolutePath());
     return path;
 }
 
-QString ObjectPanel::askOpenPath(const QString& title, const QString& filter)
+QString ObjectPanel::askOpenPath(const QString& title, const QString& filter, const QString& kind)
 {
     QSettings s;
-    const QString path = QFileDialog::getOpenFileName(this, title, startFolder(), filter);
+    const QString path = QFileDialog::getOpenFileName(this, title, startFolder(kind), filter);
     if (!path.isEmpty())
-        s.setValue(kLastDirKey, QFileInfo(path).absolutePath());
+        s.setValue(kLastDirGroup + QLatin1Char('/') + kind, QFileInfo(path).absolutePath());
     return path;
 }
 
@@ -296,7 +289,7 @@ void ObjectPanel::onSave(ObjectType type)
 void ObjectPanel::onLoad(ObjectType type)
 {
     const QString label = toDisplayString(type);
-    const QString path = askOpenPath(QStringLiteral("%1 불러오기").arg(label), ObjectFileIO::fileFilter(type));
+    const QString path = askOpenPath(QStringLiteral("%1 불러오기").arg(label), ObjectFileIO::fileFilter(type), label);
     if (path.isEmpty())
         return;
     m_edit.cancel();
@@ -375,7 +368,8 @@ void ObjectPanel::onSaveScenario()
 
 void ObjectPanel::onLoadScenario()
 {
-    const QString path = askOpenPath(QStringLiteral("시나리오 불러오기"), ObjectFileIO::scenarioFileFilter());
+    const QString path = askOpenPath(QStringLiteral("시나리오 불러오기"), ObjectFileIO::scenarioFileFilter(),
+                                     QStringLiteral("시나리오"));
     if (path.isEmpty())
         return;
     QString err;

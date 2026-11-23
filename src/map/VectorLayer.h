@@ -16,6 +16,7 @@ struct LayerStyle {
     QColor fill;                       // invalid → 채움 없음 (면 레이어만 의미)
     QColor labelColor;                 // 포인트 라벨 색상
     int labelPointSize = 9;
+    enum class PointSymbol { Triangle, Circle } pointSymbol = PointSymbol::Triangle;   // 산 ▲ / 섬 ●
 };
 
 // GeoJSON(Point/LineString/Polygon/Multi*/GeometryCollection) → Scene 좌표 QPainterPath 캐시.

@@ -16,6 +16,7 @@ template <typename T> class QSharedPointer;
 // 버튼 활성화 상태 (DESIGN 4.6 표)
 struct MissionActions {
     bool sendMission = false;
+    bool sendMissionVisible = false;   // 연동모드에서만 표시
     bool start = false;
     bool startIsResume = false;   // 시작 버튼 텍스트 "재개"
     bool pause = false;

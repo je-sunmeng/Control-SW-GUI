@@ -8,6 +8,8 @@ class ScenarioModel;
 class SimulationEngine;
 class ModeSelector;
 class DeviceStatusWidget;
+class DataLinkWidget;
+class QGroupBox;
 class MainLobeLampWidget;
 class SimControlWidget;
 class SpeedSelector;
@@ -30,6 +32,8 @@ private:
     SimulationEngine& m_engine;
     ModeSelector* m_mode;
     DeviceStatusWidget* m_devices;
+    DataLinkWidget* m_dataLink;
+    QGroupBox* m_dataLinkBox;   // 연동모드에서만 표시
     MainLobeLampWidget* m_lamps;
     SimControlWidget* m_control;
     SpeedSelector* m_speed;

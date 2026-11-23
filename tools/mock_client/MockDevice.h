@@ -17,10 +17,10 @@
 class QTcpSocket;
 class ProtocolTable;
 
-// 분석SW / 신호발생장치 에뮬레이터 (제어SW 연동 시험용)
+// 분석SW / 재밍기법발생기 에뮬레이터 (제어SW 연동 시험용)
 //  - 제어SW(서버)에 접속 → Heartbeat 로 식별, 끊기면 자동 재접속
 //  - 수신 메시지 해석·출력
-//  - 신호발생장치: 임무 정보(레이다/편대/허위표적) 저장, MissionStart 이후 레이다별 스캔주기마다
+//  - 재밍기법발생기: 임무 정보(레이다/편대/허위표적) 저장, MissionStart 이후 레이다별 스캔주기마다
 //    MainLobeNotify 송신. 탐지결과 = 거리 내 + 잡음섹터 밖의 편대 허위타겟·고정/이동 허위표적
 class MockDevice : public QObject {
     Q_OBJECT

@@ -21,7 +21,8 @@ struct ScenarioData {
     std::optional<JammerAircraft> jammer;
     std::optional<FriendlyFormation> formation;
     QVector<StandaloneFalseTarget> falseTargets;
-    double datalinkIntervalSec = 1.0;
+    double datalinkIntervalSec = 1.0;          // 아군편대 위치 전송간격
+    double jammerIntervalSec = 1.0;            // 전자전기 위치 전송간격
 };
 
 // 전체 시나리오의 단일 진실 공급원.
@@ -44,6 +45,7 @@ public:
     const std::optional<FriendlyFormation>& formation() const { return m_formation; }
     const QVector<StandaloneFalseTarget>& falseTargets() const { return m_falseTargets; }
     double datalinkIntervalSec() const { return m_datalinkIntervalSec; }
+    double jammerIntervalSec() const { return m_jammerIntervalSec; }
 
     const SimObject* find(ObjectId id) const;
     const Radar* radar(ObjectId id) const;
@@ -83,7 +85,8 @@ public:
     bool renameObject(ObjectId id, const QString& name);   // 빈 이름 거부
     bool removeObject(ObjectId id);
     void clear();
-    void setDatalinkIntervalSec(double sec);
+    void setDatalinkIntervalSec(double sec);   // 아군편대 위치 전송간격
+    void setJammerIntervalSec(double sec);     // 전자전기 위치 전송간격
 
     // ---- 불러오기 (ID 재발급, 기존 항목 교체) ----
     bool replaceRadars(QVector<Radar> radars);
@@ -101,6 +104,7 @@ signals:
     void objectRemoved(ObjectId id);
     void scenarioReset();
     void datalinkIntervalChanged(double sec);
+    void jammerIntervalChanged(double sec);
     void lockedChanged(bool locked);
 
 private:
@@ -121,5 +125,6 @@ private:
     std::optional<FriendlyFormation> m_formation;
     QVector<StandaloneFalseTarget> m_falseTargets;
     double m_datalinkIntervalSec = 1.0;
+    double m_jammerIntervalSec = 1.0;
     bool m_locked = false;
 };

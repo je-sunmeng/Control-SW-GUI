@@ -97,9 +97,9 @@ void TstVectorLayer::defaultLayers_loadFromResources()
     const MapProjection proj;
     MapLayerManager mgr;
     const int loaded = mgr.loadDefaultLayers(proj);
-    QCOMPARE(loaded, 10);
+    QCOMPARE(loaded, 11);
     for (const char* id : {"countries", "kr_land", "coastline_world", "kr_coastline", "borders", "kr_admin1",
-                           "rivers", "kr_mountains", "kr_mdl", "kr_dmz"}) {
+                           "rivers", "kr_mountains", "kr_mdl", "kr_dmz", "kr_islands"}) {
         VectorLayer* l = mgr.layer(QString::fromLatin1(id));
         QVERIFY2(l, id);
         QVERIFY2(l->vertexCount() > 0, id);
@@ -120,6 +120,15 @@ void TstVectorLayer::defaultLayers_loadFromResources()
         QVERIFY2(peaks->boundingRect().adjusted(-1e-6, -1e-6, 1e-6, 1e-6).contains(p.scenePos), qPrintable(p.label));
     }
     QVERIFY(hasJiri);
+
+    // 독도: 라벨 + 한반도 육지·해안선에 포함
+    bool hasDokdo = false;
+    for (const auto& p : mgr.layer(QStringLiteral("kr_islands"))->points())
+        hasDokdo |= p.label == QStringLiteral("독도");
+    QVERIFY(hasDokdo);
+    const QPointF dokdo = proj.toScene({37.2420, 131.8670});
+    QVERIFY(mgr.layer(QStringLiteral("kr_land"))->path().boundingRect().contains(dokdo));
+    QVERIFY(mgr.layer(QStringLiteral("kr_coastline"))->path().boundingRect().contains(dokdo));
 }
 
 void TstVectorLayer::manager_visibility()

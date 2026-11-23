@@ -1,17 +1,17 @@
 # 메시지 인터페이스 정의서 (ICD) — 초안
 
 > 상태: **협의용 초안 v0.1-draft** (2026-11-22). 아래 Command Code·payload 는 제어SW 에 **임시로 구현된 값**이며,
-> 분석SW(0x92)·신호발생장치(0xB1) 와 협의 후 확정한다. 변경 절차는 [PROTOCOL_GUIDE.md](PROTOCOL_GUIDE.md) 4장.
+> 분석SW(0x92)·재밍기법발생기(0xB1) 와 협의 후 확정한다. 변경 절차는 [PROTOCOL_GUIDE.md](PROTOCOL_GUIDE.md) 4장.
 
 ## 1. 공통
 
 | 항목 | 내용 |
 |---|---|
-| 전송 | TCP. **제어SW 가 서버** (기본 포트 50021, `--port` 로 변경), 분석SW·신호발생장치가 클라이언트로 접속 |
+| 전송 | TCP. **제어SW 가 서버** (기본 포트 50021, `--port` 로 변경), 분석SW·재밍기법발생기가 클라이언트로 접속 |
 | 바이트 순서 | BigEndian (네트워크 순서) |
 | 프레임 | 헤더 8B + payload. 헤더 = Opcode(u32) + DataSize(u32, payload 바이트 수) |
 | Opcode | Src(u8) \| Dst(u8) \| CommandCode(u16) — 예: `0x2192 0010` = 제어SW→분석SW, Cmd 0x0010 |
-| 장치 코드 | 제어SW 0x21 / 분석SW 0x92 / 신호발생장치 0xB1 |
+| 장치 코드 | 제어SW 0x21 / 분석SW 0x92 / 재밍기법발생기 0xB1 |
 | 장치 식별 | 접속 후 **첫 프레임의 Src** 로 식별 → 클라이언트는 접속 직후 Heartbeat 1회 송신 권장 (TBD-3) |
 | 실수 | 위경도 f64, 그 외 f32 (IEEE-754) — TBD-2 협의 대상 |
 | 시간 | 시뮬레이션 경과 시간(초, f64). 임무 시작 = 0 |
@@ -29,15 +29,15 @@
 
 | MessageId | Cmd(임시) | 방향 | 시점 |
 |---|---|---|---|
-| RadarInfo | 0x0001 | 제어 → 분석SW, 신호발생 | [임무전송] |
+| RadarInfo | 0x0001 | 제어 → 분석SW, 재밍기법발생기 | [임무전송] |
 | JammerRoute | 0x0002 | 제어 → 분석SW | [임무전송] |
-| FormationInfo | 0x0003 | 제어 → 분석SW, 신호발생 | [임무전송] (편대 있을 때) |
-| FalseTargetInfo | 0x0004 | 제어 → 신호발생 | [임무전송] |
-| MissionStart | 0x0010 | 제어 → 분석SW, 신호발생 | [시작] |
-| MissionStop | 0x0012 | 제어 → 분석SW, 신호발생 | [중지] / 임무 중 [새로고침] |
-| JammerPosition | 0x0020 | 제어 → 신호발생 | 임무 중 1 s 주기 (시뮬레이션 시간) |
-| FormationPosition | 0x0021 | 제어 → 신호발생 | 임무 중 데이터링크 전송간격 주기 |
-| MainLobeNotify | 0x0100 | 신호발생 → 제어 | 레이다 MainLobe 탐색 시 |
+| FormationInfo | 0x0003 | 제어 → 분석SW, 재밍기법발생기 | [임무전송] (편대 있을 때) |
+| FalseTargetInfo | 0x0004 | 제어 → 재밍기법발생기 | [임무전송] |
+| MissionStart | 0x0010 | 제어 → 분석SW, 재밍기법발생기 | [시작] |
+| MissionStop | 0x0012 | 제어 → 분석SW, 재밍기법발생기 | [중지] / 임무 중 [새로고침] |
+| JammerPosition | 0x0020 | 제어 → 재밍기법발생기 | 임무 중 전자전기 위치 전송간격 주기 (기본 1 s, 시뮬레이션 시간) |
+| FormationPosition | 0x0021 | 제어 → 재밍기법발생기 | 임무 중 데이터링크 전송간격 주기 |
+| MainLobeNotify | 0x0100 | 재밍기법발생기 → 제어 | 레이다 MainLobe 탐색 시 |
 | Heartbeat | 0x00F0 | 양방향 | 접속 직후 (주기 TBD) |
 
 ## 3. 메시지 상세
@@ -69,7 +69,7 @@
 |---|---|---|---|
 | 1 | route | Route | |
 | 2 | formationSize | u8 | 1~4 |
-| 3 | hasJamming | u8 | 분석SW 행 0, 신호발생 행 1 |
+| 3 | hasJamming | u8 | 분석SW 행 0, 재밍기법발생기 행 1 |
 | 4 | ftCount | u8 | (hasJamming=1) 허위타겟 수 0~8 |
 | 5.. | angleDeg, distanceKm | f32, f32 | × ftCount. 편대 이동방향 기준 시계방향 각도, 이격거리(임무 중 고정) |
 | 6 | noiseBandwidthMHz | f32 | (hasJamming=1) 잡음신호폭 |
@@ -111,7 +111,7 @@ payload 없음
 | 3 | detCount | u8 | | 탐지 수 |
 | 4.. | lat, lon | f64, f64 | deg | × detCount, 탐지 위치 (TBD-4: 거리·방위 표현 여부) |
 
-제어SW 동작: 수신 즉시 해당 레이다 빔을 "레이다→현재 전자전기 방위" 로 재동기화하고 MainLobe 램프를 점등, 탐지 위치를 지도에 전시.
+제어SW 동작: 레이다별 **최초 수신 시점에만** 빔을 "레이다→현재 전자전기 방위" 로 동기화하고 이후 스스로 스캔 (그 전에는 빔 미표시). MainLobe 램프는 최초 수신부터 임무 종료까지 계속 점등. 이후 수신 메시지는 빔을 다시 맞추지 않고 탐지 위치만 지도에 전시.
 
 ### Heartbeat (Cmd 0x00F0, 양방향)
 
@@ -126,4 +126,4 @@ payload 없음
 3. 장치 식별: 첫 프레임 Src vs 접속 IP 설정
 4. MainLobeNotify 탐지 위치 표현 (위경도 vs 거리·방위), 탐지 없음 시 메시지 송신 여부
 5. 응답(ACK) 필요 여부, Heartbeat 주기·타임아웃
-6. 편대 없는 시나리오의 MissionStart(신호발생) 편대 좌표 표현
+6. 편대 없는 시나리오의 MissionStart(재밍기법발생기) 편대 좌표 표현

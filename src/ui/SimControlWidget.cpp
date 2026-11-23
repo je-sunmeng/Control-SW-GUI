@@ -27,7 +27,7 @@ SimControlWidget::SimControlWidget(QWidget* parent)
     m_time->setAlignment(Qt::AlignCenter);
     m_start->setObjectName(QStringLiteral("startButton"));
     m_stop->setObjectName(QStringLiteral("stopButton"));
-    m_send->setToolTip(QStringLiteral("연동모드: 분석SW·신호발생장치로 임무 정보 송신"));
+    m_send->setToolTip(QStringLiteral("연동모드: 분석SW·재밍기법발생기로 임무 정보 송신"));
     m_pause->setToolTip(QStringLiteral("단독모드 전용"));
     m_refresh->setToolTip(QStringLiteral("임무 전 상태로 초기화 (오브젝트 설정 유지)"));
 
@@ -57,6 +57,7 @@ SimControlWidget::SimControlWidget(QWidget* parent)
 void SimControlWidget::applyActions(const MissionActions& a)
 {
     m_send->setEnabled(a.sendMission);
+    m_send->setVisible(a.sendMissionVisible);   // 단독모드에서는 숨김
     m_start->setEnabled(a.start);
     m_start->setText(a.startIsResume ? QStringLiteral("재개") : QStringLiteral("시작"));
     m_pause->setEnabled(a.pause);

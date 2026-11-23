@@ -22,6 +22,10 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QStri
     t_inHandler = true;   // Logger 내부에서 다시 qWarning 등이 발생해도 재귀 방지
     switch (type) {
     case QtWarningMsg:
+        // Qt 내부 경고(예: Windows 모니터 정보(EDID) 조회 실패 "Unable to open monitor interface")는
+        // 동작에 영향이 없으므로 오류가 아닌 정보로 기록
+        logger->info(QStringLiteral("Qt 경고: %1").arg(msg), QStringLiteral("Qt"));
+        break;
     case QtCriticalMsg:
     case QtFatalMsg:
         logger->error(msg, QStringLiteral("Qt"));

@@ -1,4 +1,4 @@
-# 연동 시험용 모의 클라이언트 (분석SW / 신호발생장치 에뮬레이터)
+# 연동 시험용 모의 클라이언트 (분석SW / 재밍기법발생기 에뮬레이터)
 qt_add_library(ctrlsw_mock STATIC
     MockDevice.h
     MockDevice.cpp

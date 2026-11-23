@@ -3,7 +3,7 @@
 #include "common/Types.h"
 #include "net/IMessage.h"
 
-// 제어 → 신호발생: 현재위치 (전자전기 1 s 주기 / 아군편대 데이터링크 간격)
+// 제어 → 재밍기법발생기: 현재위치 (전자전기 1 s 주기 / 아군편대 데이터링크 간격)
 //   simTime(f64, s) + lat(f64) + lon(f64) + altKm(f32) + headingDeg(f32)
 class PositionMsgBase : public IMessage {
 public:

@@ -18,7 +18,7 @@ QString toDisplayString(DeviceCode device)
     switch (device) {
     case DeviceCode::ControlSW:  return QStringLiteral("제어SW");
     case DeviceCode::AnalysisSW: return QStringLiteral("분석SW");
-    case DeviceCode::SignalGen:  return QStringLiteral("신호발생장치");
+    case DeviceCode::SignalGen:  return QStringLiteral("재밍기법발생기");
     }
     return QStringLiteral("0x%1").arg(quint8(device), 2, 16, QLatin1Char('0'));
 }

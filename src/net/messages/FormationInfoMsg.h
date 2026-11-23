@@ -3,7 +3,7 @@
 #include "model/FriendlyFormation.h"
 #include "net/IMessage.h"
 
-// 제어 → 분석SW, 신호발생: 아군편대 동선 (+ 신호발생에는 교란설정 포함)
+// 제어 → 분석SW, 재밍기법발생기: 아군편대 동선 (+ 재밍기법발생기에는 교란설정 포함)
 //   route(RouteCodec) + size(u8) + hasJamming(u8)
 //   [hasJamming=1] ftCount(u8) + [angleDeg(f32), distanceKm(f32)] × ftCount + noiseBandwidthMHz(f32)
 class FormationInfoMsg : public IMessage {

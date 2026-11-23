@@ -190,6 +190,7 @@ bool saveScenario(const QString& path, const ScenarioData& data, QString* error)
 {
     QJsonObject o = root(kScenario);
     o.insert(QStringLiteral("datalinkIntervalSec"), data.datalinkIntervalSec);
+    o.insert(QStringLiteral("jammerIntervalSec"), data.jammerIntervalSec);
     o.insert(QStringLiteral("radars"), writeItems(data.radars));
     if (data.jammer)
         o.insert(QStringLiteral("jammer"), JsonSerializer::toJson(*data.jammer));
@@ -206,6 +207,7 @@ std::optional<ScenarioData> loadScenario(const QString& path, QString* error)
         return std::nullopt;
     ScenarioData d;
     d.datalinkIntervalSec = o->value(QLatin1String("datalinkIntervalSec")).toDouble(d.datalinkIntervalSec);
+    d.jammerIntervalSec = o->value(QLatin1String("jammerIntervalSec")).toDouble(d.jammerIntervalSec);
 
     auto section = [&](const char* key, auto& out) -> bool {
         using Item = typename std::decay_t<decltype(out)>::value_type;

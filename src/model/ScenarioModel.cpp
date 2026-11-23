@@ -14,6 +14,7 @@ const QString kSource = QStringLiteral("Scenario");
 ScenarioModel::ScenarioModel(QObject* parent)
     : QObject(parent)
     , m_datalinkIntervalSec(Defaults::DatalinkIntervalSec)
+    , m_jammerIntervalSec(Defaults::JammerPositionIntervalSec)
 {
 }
 
@@ -81,7 +82,7 @@ bool ScenarioModel::isEmpty() const
 
 ScenarioData ScenarioModel::snapshot() const
 {
-    return {m_radars, m_jammer, m_formation, m_falseTargets, m_datalinkIntervalSec};
+    return {m_radars, m_jammer, m_formation, m_falseTargets, m_datalinkIntervalSec, m_jammerIntervalSec};
 }
 
 bool ScenarioModel::validate(QStringList* errors) const
@@ -477,6 +478,17 @@ void ScenarioModel::setDatalinkIntervalSec(double sec)
     emit datalinkIntervalChanged(sec);
 }
 
+void ScenarioModel::setJammerIntervalSec(double sec)
+{
+    if (!checkEditable(QStringLiteral("전자전기 위치 전송간격")))
+        return;
+    sec = qBound(MinDatalinkIntervalSec, sec, MaxDatalinkIntervalSec);
+    if (qFuzzyCompare(sec, m_jammerIntervalSec))
+        return;
+    m_jammerIntervalSec = sec;
+    emit jammerIntervalChanged(sec);
+}
+
 // ---------------------------------------------------------------------------- 불러오기
 
 void ScenarioModel::removeAllRadars()
@@ -582,6 +594,7 @@ bool ScenarioModel::replaceAll(const ScenarioData& data)
     replaceFormation(data.formation);
     replaceFalseTargets(data.falseTargets);
     setDatalinkIntervalSec(data.datalinkIntervalSec);
+    setJammerIntervalSec(data.jammerIntervalSec);
     return true;
 }
 

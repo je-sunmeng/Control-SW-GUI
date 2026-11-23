@@ -185,6 +185,10 @@ void SimulationEngine::onExternalMainLobe(ObjectId radarId)
 {
     if (m_state != SimState::Running && m_state != SimState::Paused)
         return;
+    // 연동모드: 레이다별 최초 MainLobe 수신 시점에만 빔 동기화 (그 시점 전자전기 방향에서 스캔 시작).
+    // 이후 수신은 빔을 다시 맞추지 않음 (탐지결과는 MissionController 가 별도 반영)
+    if (m_scanner.isSynced(radarId))
+        return;
     for (const Radar& r : std::as_const(m_data.radars)) {
         if (r.id == radarId) {
             syncRadar(radarId, m_clock.simTimeSec(), r.pos);
@@ -263,8 +267,9 @@ SimSnapshot SimulationEngine::advanceTo(double t)
     // --- 주기 이벤트 (틱당 최대 1회, 밀린 주기는 건너뜀) ---
     if (m_data.jammer && t >= m_nextJammerDue) {
         emit jammerPositionDue(jammerState);
+        const double interval = std::max(ScenarioModel::MinDatalinkIntervalSec, m_data.jammerIntervalSec);
         while (m_nextJammerDue <= t)
-            m_nextJammerDue += Defaults::JammerPositionIntervalSec;
+            m_nextJammerDue += interval;
     }
     if (hasFormation && t >= m_nextFormationDue) {
         emit formationPositionDue(formationState);

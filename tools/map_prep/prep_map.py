@@ -24,6 +24,28 @@ KOREA = {"KOR", "PRK"}
 NDIGITS = 4
 
 # 한반도 주요 산 (Natural Earth 포인트가 부족·오표기되어 직접 보강). 좌표는 정상 기준 근사값.
+# Natural Earth 10m 에 없는 작은 섬 (면적 기준 누락) — 직접 추가.
+# (이름, 중심 경도, 중심 위도, 반경 deg) 근사 팔각형 윤곽
+KOREAN_ISLETS = [
+    ("독도 서도", 131.8646, 37.2426, 0.0016),
+    ("독도 동도", 131.8697, 37.2411, 0.0013),
+]
+# 섬 이름 라벨 (작아서 지도 축척에서 윤곽이 보이지 않으므로 이름 표시)
+KOREAN_ISLAND_LABELS = [
+    ("독도", 131.8670, 37.2420),
+    ("울릉도", 130.8624, 37.4977),
+]
+
+
+def islet_ring(lon, lat, r):
+    pts = []
+    for k in range(8):
+        a = math.radians(22.5 + 45 * k)
+        pts.append([round(lon + r * math.cos(a) / math.cos(math.radians(lat)), 5), round(lat + r * math.sin(a), 5)])
+    pts.append(pts[0])
+    return pts
+
+
 KOREAN_PEAKS = [
     ("백두산", 2744, 128.0560, 42.0063),
     ("관모봉", 2541, 129.2075, 41.7064),
@@ -289,6 +311,12 @@ def main():
         else:
             countries.append(feature({"type": "MultiPolygon", "coordinates": polys}, props))
     save(args.out, "countries", countries, meta)
+    # 독도 등 누락된 작은 섬 → 한반도 육지(대한민국 feature) 에 추가
+    islets = [[islet_ring(lon, lat, r)] for _, lon, lat, r in KOREAN_ISLETS]
+    for ft in kr_land:
+        if ft["properties"].get("a3") == "KOR":
+            ft["geometry"]["coordinates"].extend(islets)
+            break
     save(args.out, "kr_land", kr_land, meta)
 
     def near_korea(x, y):
@@ -323,7 +351,13 @@ def main():
                     if len(s) >= 2:
                         (kr if target_kr else world).append(s)
     save(args.out, "coastline_world", [feature(multiline(world))], meta)
+    kr += [islet_ring(lon, lat, r) for _, lon, lat, r in KOREAN_ISLETS]   # 독도 해안선
     save(args.out, "kr_coastline", [feature(multiline(kr))], meta)
+
+    print("islands ...")
+    save(args.out, "kr_islands",
+         [feature({"type": "Point", "coordinates": [lon, lat]}, {"name": n}) for n, lon, lat in KOREAN_ISLAND_LABELS],
+         dict(meta, note="섬 이름 라벨 (직접 입력)"))
 
     print("borders / mdl / dmz ...")
     borders, mdl, dmz = [], [], []

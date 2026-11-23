@@ -204,6 +204,8 @@ qt_add_library(ctrlsw_gui STATIC
     ui/LampIndicator.cpp
     ui/ModeSelector.h
     ui/ModeSelector.cpp
+    ui/DataLinkWidget.h
+    ui/DataLinkWidget.cpp
     ui/DeviceStatusWidget.h
     ui/DeviceStatusWidget.cpp
     ui/MainLobeLampWidget.h

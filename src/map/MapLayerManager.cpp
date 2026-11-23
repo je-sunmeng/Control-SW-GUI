@@ -32,6 +32,8 @@ const LayerDef kDefaults[] = {
     {"kr_dmz",          "비무장지대",      9,  {QColor(0xb0, 0x70, 0x40), 0.8, Qt::DotLine, {}, {}, 9},                        0.8, 0, true},
     {"kr_mdl",          "군사분계선",      10, {QColor(0xff, 0x5a, 0x4f), 1.8, Qt::DashDotLine, {}, {}, 9},                    0, 0, true},
     {"kr_mountains",    "산",              11, {QColor(0xb8, 0xa2, 0x7a), 1.0, Qt::SolidLine, {}, QColor(0xb8, 0xa2, 0x7a), 8}, 0, 0.9, true},
+    {"kr_islands",      "섬 이름",         12, {QColor(0xc8, 0xd3, 0xe0), 1.0, Qt::SolidLine, {}, QColor(0xe6, 0xec, 0xf3), 9,
+                                               LayerStyle::PointSymbol::Circle}, 0, 0, true},
 };
 
 QString settingsKey(const QString& id)

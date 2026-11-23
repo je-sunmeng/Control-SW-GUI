@@ -26,7 +26,7 @@ QString modeName(RunMode m)
 
 bool MissionActions::operator==(const MissionActions& o) const
 {
-    return sendMission == o.sendMission && start == o.start && startIsResume == o.startIsResume && pause == o.pause
+    return sendMission == o.sendMission && sendMissionVisible == o.sendMissionVisible && start == o.start && startIsResume == o.startIsResume && pause == o.pause
            && pauseVisible == o.pauseVisible && stop == o.stop && refresh == o.refresh
            && refreshNeedsConfirm == o.refreshNeedsConfirm && speed == o.speed && modeChange == o.modeChange;
 }
@@ -87,6 +87,7 @@ MissionActions MissionController::actions() const
     const bool standalone = mode() == RunMode::Standalone;
     const bool bothConnected = m_analysisConnected && m_signalGenConnected;
     a.pauseVisible = standalone;
+    a.sendMissionVisible = !standalone;
     switch (state()) {
     case SimState::PreMission:
         a.sendMission = !standalone && bothConnected && m_model.validate();
@@ -167,7 +168,7 @@ bool MissionController::sendMission()
         f.includeJamming = false;
         ok &= sendTo(DeviceCode::AnalysisSW, f);
     }
-    // 신호발생: 레이다 / 편대(+교란설정) / 단독허위표적
+    // 재밍기법발생기: 레이다 / 편대(+교란설정) / 단독허위표적
     ok &= sendTo(DeviceCode::SignalGen, radars);
     if (d.formation) {
         FormationInfoMsg f;
@@ -222,7 +223,7 @@ void MissionController::onMessage(DeviceCode src, const QSharedPointer<IMessage>
         return;   // Heartbeat 등은 로그만
     const auto* ml = static_cast<const MainLobeNotifyMsg*>(msg.data());
     if (src != DeviceCode::SignalGen) {
-        m_logger.error(QStringLiteral("MainLobeNotify 는 신호발생장치에서만 수신해야 합니다"), kSource);
+        m_logger.error(QStringLiteral("MainLobeNotify 는 재밍기법발생기에서만 수신해야 합니다"), kSource);
         return;
     }
     if (mode() != RunMode::Linked || (state() != SimState::Running && state() != SimState::Paused))

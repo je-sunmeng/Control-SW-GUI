@@ -7,7 +7,7 @@
 class QLabel;
 class LampIndicator;
 
-// 분석SW / 신호발생장치 연결 상태 (M5 에서 NetworkManager 와 연결)
+// 분석SW / 재밍기법발생기 연결 상태 (M5 에서 NetworkManager 와 연결)
 class DeviceStatusWidget : public QWidget {
     Q_OBJECT
 public:
