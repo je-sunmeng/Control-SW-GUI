@@ -2,6 +2,8 @@
 
 #include <QPainter>
 
+#include <algorithm>
+
 RandomGhostItem::RandomGhostItem(const QColor& color, QGraphicsItem* parent)
     : QGraphicsItem(parent)
     , m_color(color)
@@ -10,22 +12,30 @@ RandomGhostItem::RandomGhostItem(const QColor& color, QGraphicsItem* parent)
     setAcceptedMouseButtons(Qt::NoButton);
 }
 
+void RandomGhostItem::setState(double progress, double fade)
+{
+    m_progress = std::clamp(progress, 0.0, 1.0);
+    setOpacity(std::clamp(fade, 0.0, 1.0) * MaxOpacity);
+    update();
+}
+
 QRectF RandomGhostItem::boundingRect() const
 {
-    return QRectF(-10, -10, 20, 14);
+    const qreal r = MaxRadiusPx + 2;
+    return QRectF(-r, -r, 2 * r, 2 * r);
 }
 
 void RandomGhostItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
     painter->setRenderHint(QPainter::Antialiasing, true);
-    QColor fill = m_color;
-    fill.setAlpha(110);
-    painter->setPen(QPen(m_color.lighter(130), 1.2));
-    painter->setBrush(fill);
-    // 위쪽 반원 (레이다 화면의 고스트 반향 느낌)
-    QPainterPath p;
-    p.moveTo(-8, 2);
-    p.arcTo(QRectF(-8, -6, 16, 16), 180, -180);
-    p.closeSubpath();
-    painter->drawPath(p);
+    const qreal r = MinRadiusPx + (MaxRadiusPx - MinRadiusPx) * m_progress;
+    QPen pen(m_color, 1.3, Qt::CustomDashLine);
+    pen.setDashPattern({2.0, 2.0});
+    painter->setPen(pen);
+    painter->setBrush(Qt::NoBrush);
+    painter->drawEllipse(QPointF(0, 0), r, r);
+    // 중심 작은 점 (블립 위치)
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(m_color);
+    painter->drawEllipse(QPointF(0, 0), 1.4, 1.4);
 }

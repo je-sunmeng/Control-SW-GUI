@@ -1,9 +1,12 @@
 #pragma once
 
 #include <QDoubleSpinBox>
+#include <QHeaderView>
+#include <QTableWidget>
 #include <QSignalBlocker>
 #include <QString>
 
+#include <algorithm>
 #include <cmath>
 
 // 에디터 공용 헬퍼
@@ -22,6 +25,7 @@ inline QDoubleSpinBox* makeSpin(double min, double max, int decimals, const QStr
     s->setKeyboardTracking(false);
     s->setAlignment(Qt::AlignRight);
     s->setAccelerated(true);
+    s->setFocusPolicy(Qt::StrongFocus);   // 휠로 포커스/선택되지 않음 (클릭·Tab 으로만)
     return s;
 }
 
@@ -32,6 +36,17 @@ inline void setSilently(QDoubleSpinBox* s, double v)
         return;
     const QSignalBlocker b(s);
     s->setValue(v);
+}
+
+// 테이블 높이를 행 수에 맞춤 (minRows~maxRows 행 높이, 초과분은 테이블 내부 스크롤)
+inline void fitTableHeight(QTableWidget* t, int minRows = 1, int maxRows = 6)
+{
+    t->ensurePolished();                       // 스타일시트(헤더 패딩 등) 적용 후 크기 계산
+    t->horizontalHeader()->ensurePolished();
+    const int rows = std::clamp(t->rowCount(), minRows, maxRows);
+    const int header = t->horizontalHeader()->isHidden() ? 0 : t->horizontalHeader()->sizeHint().height();
+    const int h = header + rows * t->verticalHeader()->defaultSectionSize() + 2 * t->frameWidth() + 4;
+    t->setFixedHeight(h);
 }
 
 inline QString formatDuration(double sec)

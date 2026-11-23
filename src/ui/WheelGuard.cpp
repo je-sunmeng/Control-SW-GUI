@@ -13,6 +13,13 @@ WheelGuard::WheelGuard(QObject* parent)
 
 bool WheelGuard::eventFilter(QObject* watched, QEvent* event)
 {
+    // 스핀박스/콤보박스 기본 포커스 정책(WheelFocus)은 휠만 굴려도 포커스·텍스트 선택이 생김 → StrongFocus 로
+    if (event->type() == QEvent::Polish) {
+        if (auto* pw = qobject_cast<QWidget*>(watched);
+            pw && (qobject_cast<QAbstractSpinBox*>(pw) || qobject_cast<QComboBox*>(pw)) && (pw->focusPolicy() & Qt::WheelFocus) == Qt::WheelFocus)
+            pw->setFocusPolicy(Qt::StrongFocus);
+        return false;
+    }
     if (event->type() != QEvent::Wheel)
         return false;
     auto* w = qobject_cast<QWidget*>(watched);

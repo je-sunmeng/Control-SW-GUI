@@ -40,6 +40,7 @@ private slots:
     void destroySceneBeforeController();
     void runtimeItems_followSnapshots();
     void zoomOut_limitedToMapExtent();
+    void resize_keepsMapPosition();
 
 private:
     void click(Qt::MouseButton b, const GeoPoint& p)
@@ -360,6 +361,22 @@ void TstMapEdit::zoomOut_limitedToMapExtent()
                             .arg(data.width()).arg(data.height())));
     // 한 축은 지도 전체 폭/높이와 일치 (= 최대 축소)
     QVERIFY(qAbs(visible.width() - data.width()) < 2 || qAbs(visible.height() - data.height()) < 2);
+}
+
+void TstMapEdit::resize_keepsMapPosition()
+{
+    // 로그창 크기 조절 = 지도 뷰 높이 변화 → 지도(좌상단 위치)·배율이 바뀌지 않아야 함
+    m_view->zoomBy(2.0);
+    QApplication::processEvents();
+    const QPointF topLeft = m_view->mapToScene(QPoint(0, 0));
+    const double ppk = m_view->pxPerKm();
+    m_view->resize(m_view->width(), m_view->height() - 150);
+    QApplication::processEvents();
+    QVERIFY((m_view->mapToScene(QPoint(0, 0)) - topLeft).manhattanLength() < 1.5);
+    QCOMPARE(m_view->pxPerKm(), ppk);
+    m_view->resize(m_view->width(), m_view->height() + 100);
+    QApplication::processEvents();
+    QVERIFY((m_view->mapToScene(QPoint(0, 0)) - topLeft).manhattanLength() < 1.5);
 }
 
 QTEST_MAIN(TstMapEdit)

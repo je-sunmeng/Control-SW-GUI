@@ -2,5 +2,9 @@
 <RCC version="1.0">
     <qresource prefix="/">
         <file>styles/dark.qss</file>
+        <file>icons/arrow-up.svg</file>
+        <file>icons/arrow-down.svg</file>
+        <file>icons/arrow-up-disabled.svg</file>
+        <file>icons/arrow-down-disabled.svg</file>
     </qresource>
 </RCC>

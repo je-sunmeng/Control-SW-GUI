@@ -22,7 +22,8 @@ JammerEditor::JammerEditor(ScenarioModel& model, QWidget* parent)
     auto* l = new QVBoxLayout(this);
     l->setContentsMargins(4, 4, 4, 4);
     l->addLayout(form);
-    l->addWidget(routeBox, 1);
+    l->addWidget(routeBox);
+    l->addStretch(1);
 
     connectRouteTable(m_route);
 }

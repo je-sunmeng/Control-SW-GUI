@@ -81,6 +81,7 @@ ctest --preset windows-debug
 | 고정/잡음 표적 위치 | [단독허위표적 추가] → 타입 선택 → 지도 클릭 |
 | 위치 수정 | 지도에서 심볼/웨이포인트 드래그 또는 설정 패널에서 수치 입력 (마우스 휠은 값 대신 패널 스크롤) |
 | 삭제 | 목록에서 Delete 키 또는 우클릭 메뉴 |
+| 저장 위치 | 기본 폴더 `문서/CtrlSW` (파일 → 기본 저장 폴더 설정… 으로 변경), 기본 파일명 `<종류>_<날짜>_<시각>` |
 | 저장/불러오기 | 항목별 `*.radar.json`, `*.jammer.json`, `*.formation.json`, `*.falsetarget.json`, 전체 `*.scenario.json` (불러오기 = 기존 항목 교체, ID 재발급) |
 
 지도 데이터: [Natural Earth](https://www.naturalearthdata.com/) (Public Domain), 생성 방법은 [tools/map_prep](tools/map_prep/README.md)

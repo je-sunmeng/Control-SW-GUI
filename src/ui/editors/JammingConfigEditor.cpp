@@ -27,7 +27,8 @@ JammingConfigEditor::JammingConfigEditor(QWidget* parent)
     m_table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_table->verticalHeader()->setDefaultSectionSize(26);
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
-    m_table->setMinimumHeight(90);
+    m_table->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    EditorUtil::fitTableHeight(m_table, 1, 8);
     m_table->setToolTip(QStringLiteral("이격각도: 편대 이동방향 기준 시계방향 / 이격거리: 임무 중 고정"));
 
     auto* form = new QFormLayout;
@@ -39,7 +40,7 @@ JammingConfigEditor::JammingConfigEditor(QWidget* parent)
     l->setContentsMargins(0, 0, 0, 0);
     l->setSpacing(4);
     l->addLayout(form);
-    l->addWidget(m_table, 1);
+    l->addWidget(m_table);
 
     connect(m_count, &QSpinBox::valueChanged, this, [this](int n) {
         m_config.resize(n);
@@ -83,8 +84,10 @@ void JammingConfigEditor::setConfig(const JammingConfig& config)
         m_count->setValue(n);
     }
     EditorUtil::setSilently(m_noiseBw, config.noiseBandwidthMHz);
-    if (m_table->rowCount() != n)
+    if (m_table->rowCount() != n) {
         rebuild(n);
+        EditorUtil::fitTableHeight(m_table, 1, 8);   // 허위타겟 최대 8 → 스크롤 없이 모두 표시
+    }
     for (int i = 0; i < n; ++i) {
         EditorUtil::setSilently(static_cast<QDoubleSpinBox*>(m_table->cellWidget(i, 0)), config.targets[i].angleDeg);
         EditorUtil::setSilently(static_cast<QDoubleSpinBox*>(m_table->cellWidget(i, 1)), config.targets[i].distanceKm);

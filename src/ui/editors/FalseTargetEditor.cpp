@@ -65,7 +65,8 @@ FalseTargetEditor::FalseTargetEditor(ScenarioModel& model, QWidget* parent)
     auto* l = new QVBoxLayout(this);
     l->setContentsMargins(4, 4, 4, 4);
     l->addLayout(form);
-    l->addWidget(m_pages, 1);
+    l->addWidget(m_pages);
+    l->addStretch(1);
 
     connectRouteTable(m_route);
     connect(m_lat, &QDoubleSpinBox::valueChanged, this, &FalseTargetEditor::commitPosition);

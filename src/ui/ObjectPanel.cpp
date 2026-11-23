@@ -10,7 +10,9 @@
 #include "model/ScenarioModel.h"
 #include "persistence/ObjectFileIO.h"
 
+#include <QDesktopServices>
 #include <QDir>
+#include <QUrl>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
@@ -24,6 +26,7 @@
 namespace {
 const QString kSource = QStringLiteral("Scenario");
 const QString kLastDirKey = QStringLiteral("paths/objectFiles");
+const QString kDefaultDirKey = QStringLiteral("paths/defaultFolder");
 
 QGroupBox* boxed(const QString& title, QWidget* content, QWidget* parent)
 {
@@ -186,11 +189,49 @@ void ObjectPanel::onDelete(ObjectId id)
 
 // ---------------------------------------------------------------------------- 파일
 
-QString ObjectPanel::askSavePath(const QString& title, const QString& filter, const QString& suffix)
+QString ObjectPanel::defaultFolder()
 {
     QSettings s;
-    const QString dir = s.value(kLastDirKey, QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
-    QString path = QFileDialog::getSaveFileName(this, title, dir, filter);
+    QString dir = s.value(kDefaultDirKey).toString();
+    if (dir.isEmpty())
+        dir = QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).filePath(QStringLiteral("CtrlSW"));
+    QDir().mkpath(dir);
+    return dir;
+}
+
+QString ObjectPanel::defaultFileName(const QString& kind, const QString& suffix, const QDateTime& when)
+{
+    return QStringLiteral("%1_%2.%3").arg(kind, when.toString(QStringLiteral("yyyyMMdd_HHmm")), suffix);
+}
+
+QString ObjectPanel::startFolder()
+{
+    const QString last = QSettings().value(kLastDirKey).toString();
+    return !last.isEmpty() && QDir(last).exists() ? last : defaultFolder();
+}
+
+void ObjectPanel::chooseDefaultFolder()
+{
+    const QString dir = QFileDialog::getExistingDirectory(this, QStringLiteral("기본 저장 폴더 선택"), defaultFolder());
+    if (dir.isEmpty())
+        return;
+    QSettings s;
+    s.setValue(kDefaultDirKey, dir);
+    s.setValue(kLastDirKey, dir);   // 다음 저장/불러오기도 이 폴더에서 시작
+    m_logger.info(QStringLiteral("기본 저장 폴더: %1").arg(QDir::toNativeSeparators(dir)), kSource);
+}
+
+void ObjectPanel::openDefaultFolder()
+{
+    QDesktopServices::openUrl(QUrl::fromLocalFile(startFolder()));
+}
+
+QString ObjectPanel::askSavePath(const QString& title, const QString& filter, const QString& suffix, const QString& kind)
+{
+    QSettings s;
+    // 기본 위치/이름: <마지막 폴더 또는 기본 폴더>/<종류>_<날짜_시각>.<확장자>
+    const QString initial = QDir(startFolder()).filePath(defaultFileName(kind, suffix, QDateTime::currentDateTime()));
+    QString path = QFileDialog::getSaveFileName(this, title, initial, filter);
     if (path.isEmpty())
         return {};
     if (!path.endsWith(QLatin1Char('.') + suffix, Qt::CaseInsensitive)) {
@@ -205,8 +246,7 @@ QString ObjectPanel::askSavePath(const QString& title, const QString& filter, co
 QString ObjectPanel::askOpenPath(const QString& title, const QString& filter)
 {
     QSettings s;
-    const QString dir = s.value(kLastDirKey, QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
-    const QString path = QFileDialog::getOpenFileName(this, title, dir, filter);
+    const QString path = QFileDialog::getOpenFileName(this, title, startFolder(), filter);
     if (!path.isEmpty())
         s.setValue(kLastDirKey, QFileInfo(path).absolutePath());
     return path;
@@ -234,7 +274,7 @@ void ObjectPanel::onSave(ObjectType type)
         return;
     }
     const QString path = askSavePath(QStringLiteral("%1 저장").arg(label), ObjectFileIO::fileFilter(type),
-                                     ObjectFileIO::defaultSuffix(type));
+                                     ObjectFileIO::defaultSuffix(type), label);
     if (path.isEmpty())
         return;
     QString err;
@@ -321,7 +361,7 @@ void ObjectPanel::onNewScenario()
 void ObjectPanel::onSaveScenario()
 {
     const QString path = askSavePath(QStringLiteral("시나리오 저장"), ObjectFileIO::scenarioFileFilter(),
-                                     QStringLiteral("scenario.json"));
+                                     QStringLiteral("scenario.json"), QStringLiteral("시나리오"));
     if (path.isEmpty())
         return;
     QString err;

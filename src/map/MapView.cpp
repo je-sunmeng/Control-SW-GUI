@@ -42,7 +42,8 @@ MapView::MapView(MapScene* scene, QWidget* parent)
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);   // 전경 라벨/축척 막대가 뷰 좌표 고정이므로
     setOptimizationFlag(QGraphicsView::DontSavePainterState, true);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-    setResizeAnchor(QGraphicsView::AnchorViewCenter);
+    // 로그창/패널 크기 변경으로 뷰 크기가 바뀌어도 지도가 움직이지 않도록 좌상단 위치 유지
+    setResizeAnchor(QGraphicsView::NoAnchor);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setDragMode(QGraphicsView::NoDrag);

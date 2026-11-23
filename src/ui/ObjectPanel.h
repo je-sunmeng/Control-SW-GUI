@@ -2,6 +2,7 @@
 
 #include "common/Types.h"
 
+#include <QDateTime>
 #include <QWidget>
 
 class QDoubleSpinBox;
@@ -22,8 +23,15 @@ public:
 
     ObjectId currentObject() const;
 
+    // 오브젝트/시나리오 파일 기본 저장 폴더 (설정값 없으면 <문서>/CtrlSW, 없으면 생성)
+    static QString defaultFolder();
+    // 기본 파일명: <종류>_yyyyMMdd_HHmm.<suffix>
+    static QString defaultFileName(const QString& kind, const QString& suffix, const QDateTime& when);
+
 public slots:
     void selectObject(ObjectId id);
+    void chooseDefaultFolder();   // 파일 메뉴: 기본 저장 폴더 설정
+    void openDefaultFolder();     // 파일 메뉴: 저장 폴더 열기
 
 signals:
     void objectSelected(ObjectId id);
@@ -38,7 +46,8 @@ private:
     void onDelete(ObjectId id);
     void onLockedChanged(bool locked);
 
-    QString askSavePath(const QString& title, const QString& filter, const QString& suffix);
+    QString askSavePath(const QString& title, const QString& filter, const QString& suffix, const QString& kind);
+    static QString startFolder();   // 마지막 사용 폴더(존재 시) 또는 기본 폴더
     QString askOpenPath(const QString& title, const QString& filter);
     bool confirmReplace(const QString& what);
 

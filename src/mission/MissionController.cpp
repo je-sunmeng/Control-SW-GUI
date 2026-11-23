@@ -48,6 +48,11 @@ MissionController::MissionController(ScenarioModel& model, SimulationEngine& eng
             [this](const PlatformState& s) { onPositionDue(s, false); });
     connect(&m_engine, &SimulationEngine::formationPositionDue, this,
             [this](const PlatformState& s) { onPositionDue(s, true); });
+    // 아군편대가 동선 끝에 도달하면 임무 종료 (연동모드는 STOP 메시지 포함)
+    connect(&m_engine, &SimulationEngine::formationRouteCompleted, this, [this](double t) {
+        m_logger.info(QStringLiteral("아군편대 동선 종료 (T+%1 s) → 임무 종료").arg(t, 0, 'f', 1), kSource);
+        stop();
+    });
     connect(&m_engine, &SimulationEngine::stateChanged, this, &MissionController::updateActions);
     connect(&m_model, &ScenarioModel::objectAdded, this, &MissionController::updateActions);
     connect(&m_model, &ScenarioModel::objectChanged, this, &MissionController::updateActions);

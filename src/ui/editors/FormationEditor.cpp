@@ -36,8 +36,9 @@ FormationEditor::FormationEditor(ScenarioModel& model, QWidget* parent)
     auto* l = new QVBoxLayout(this);
     l->setContentsMargins(4, 4, 4, 4);
     l->addLayout(form);
-    l->addWidget(routeBox, 3);
-    l->addWidget(jamBox, 2);
+    l->addWidget(routeBox);   // 내용 크기만큼만 (동선 수에 따라 유동)
+    l->addWidget(jamBox);
+    l->addStretch(1);
 
     connectRouteTable(m_route);
     connect(m_size, &QSpinBox::valueChanged, this, [this](int n) {

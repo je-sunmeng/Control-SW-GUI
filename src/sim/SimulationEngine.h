@@ -61,6 +61,8 @@ signals:
     void jammerPositionDue(const PlatformState& state);
     void formationPositionDue(const PlatformState& state);
     void mainLobeSynced(ObjectId radarId);
+    // 아군편대가 동선 마지막 점에 도달 (임무 1회당 1번) → MissionController 가 임무 종료
+    void formationRouteCompleted(double simTime);
 
 private:
     void onTick();
@@ -85,5 +87,6 @@ private:
     QHash<ObjectId, double> m_nextSync;   // 단독모드 다음 MainLobe 시각
     double m_nextJammerDue = 0.0;
     double m_nextFormationDue = 0.0;
+    bool m_formationDone = false;
     SimSnapshot m_last;
 };

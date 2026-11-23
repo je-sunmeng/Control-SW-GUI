@@ -87,6 +87,7 @@ bool SimulationEngine::start(QString* error)
     m_nextSync.clear();
     m_nextJammerDue = 0.0;
     m_nextFormationDue = 0.0;
+    m_formationDone = false;
     if (m_mode == RunMode::Linked)
         m_clock.setSpeedFactor(1);
 
@@ -274,5 +275,11 @@ SimSnapshot SimulationEngine::advanceTo(double t)
 
     m_last = s;
     emit snapshotReady(s);
+
+    // 편대 동선 종료 → 임무 종료 요청 (이번 틱 전시 이후에 통지해 상태가 꼬이지 않게)
+    if (hasFormation && formationState.finished && !m_formationDone && m_state == SimState::Running) {
+        m_formationDone = true;
+        emit formationRouteCompleted(t);
+    }
     return s;
 }

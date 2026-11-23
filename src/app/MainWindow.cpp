@@ -69,6 +69,9 @@ void MainWindow::closeEvent(QCloseEvent* event)
 void MainWindow::setupMenus()
 {
     QMenu* file = menuBar()->addMenu(QStringLiteral("파일(&F)"));
+    file->addAction(QStringLiteral("기본 저장 폴더 설정…"), m_objectPanel, &ObjectPanel::chooseDefaultFolder);
+    file->addAction(QStringLiteral("저장 폴더 열기"), m_objectPanel, &ObjectPanel::openDefaultFolder);
+    file->addSeparator();
     QAction* quit = file->addAction(QStringLiteral("종료(&X)"), this, &QWidget::close);
     quit->setShortcut(QKeySequence::Quit);
 

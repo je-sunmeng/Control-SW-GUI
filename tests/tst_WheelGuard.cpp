@@ -44,8 +44,13 @@ void TstWheelGuard::wheelScrollsInsteadOfChangingValue()
     QVERIFY(QTest::qWaitForWindowExposed(&area));
 
     QCOMPARE(area.verticalScrollBar()->value(), 0);
+    spin->clearFocus();                     // 창 표시 시 자동 포커스 제거 → 휠이 포커스를 만드는지 확인
+    QApplication::processEvents();
+    QVERIFY(!spin->hasFocus());
     wheelOn(spin, -120);                    // 아래로 한 칸
     QCOMPARE(spin->value(), 50.0);          // 값 변경 없음
+    QVERIFY(!spin->hasFocus());             // 휠로 포커스(편집 영역 선택) 생기지 않음
+    QCOMPARE(spin->focusPolicy(), Qt::StrongFocus);
     QVERIFY(area.verticalScrollBar()->value() > 0);   // 대신 스크롤
     const int v = area.verticalScrollBar()->value();
     wheelOn(combo, -120);

@@ -120,3 +120,33 @@ QPushButton#startButton:enabled:hover { background: #33704a; }
 QPushButton#stopButton:enabled { background: #6e2b2b; border-color: #a03c3c; }
 QPushButton#stopButton:enabled:hover { background: #823434; }
 QWidget#SpeedSelector QPushButton:checked { background: #2f6fb0; border-color: #4a8fd4; color: white; }
+
+/* 값 수정 버튼 (스핀박스 ▲▼ / 콤보박스 ▼) — 어두운 배경에서도 잘 보이도록 */
+QAbstractSpinBox { padding-right: 20px; }
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
+    subcontrol-origin: border;
+    width: 18px;
+    background: #353d48;
+    border-left: 1px solid #4a5260;
+}
+QAbstractSpinBox::up-button { subcontrol-position: top right; border-bottom: 1px solid #1e2228; border-top-right-radius: 3px; }
+QAbstractSpinBox::down-button { subcontrol-position: bottom right; border-bottom-right-radius: 3px; }
+QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background: #46505e; }
+QAbstractSpinBox::up-button:pressed, QAbstractSpinBox::down-button:pressed { background: #2f6fb0; }
+QAbstractSpinBox::up-arrow { image: url(:/icons/arrow-up.svg); width: 10px; height: 10px; }
+QAbstractSpinBox::down-arrow { image: url(:/icons/arrow-down.svg); width: 10px; height: 10px; }
+QAbstractSpinBox::up-arrow:disabled, QAbstractSpinBox::up-arrow:off { image: url(:/icons/arrow-up-disabled.svg); }
+QAbstractSpinBox::down-arrow:disabled, QAbstractSpinBox::down-arrow:off { image: url(:/icons/arrow-down-disabled.svg); }
+QComboBox { padding-right: 22px; }
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    background: #353d48;
+    border-left: 1px solid #4a5260;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+QComboBox::drop-down:hover { background: #46505e; }
+QComboBox::down-arrow { image: url(:/icons/arrow-down.svg); width: 10px; height: 10px; }
+QComboBox::down-arrow:disabled { image: url(:/icons/arrow-down-disabled.svg); }

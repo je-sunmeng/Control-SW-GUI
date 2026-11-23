@@ -24,6 +24,7 @@ private slots:
     void mission_actionsTable();
     void mission_startLocksModel_refreshUnlocks();
     void realTimer_runs();
+    void formationArrival_stopsMission();
 
 private:
     void buildScenario();
@@ -276,6 +277,25 @@ void TstSimulationEngine::realTimer_runs()
     const double t = m_engine->lastSnapshot().simTime;
     QVERIFY2(t > 0.5, qPrintable(QString::number(t)));   // 8배속 → 실시간보다 빠르게 진행
     m_engine->stop();
+}
+
+void TstSimulationEngine::formationArrival_stopsMission()
+{
+    buildScenario();
+    Logger log;
+    MissionController mc(*m_model, *m_engine, log);
+    QSignalSpy done(m_engine.get(), &SimulationEngine::formationRouteCompleted);
+    QVERIFY(mc.startOrResume());
+    const double arrive = m_model->formation()->route.totalDurationSec();   // 편대 동선 소요시간
+    m_engine->advanceTo(arrive - 1.0);
+    QCOMPARE(done.count(), 0);
+    QCOMPARE(mc.state(), SimState::Running);
+    m_engine->advanceTo(arrive + 0.1);
+    QCOMPARE(done.count(), 1);
+    QCOMPARE(mc.state(), SimState::Stopped);   // 임무 자동 종료
+    QCOMPARE(m_engine->lastSnapshot().state, SimState::Stopped);
+    m_engine->advanceTo(arrive + 5.0);
+    QCOMPARE(done.count(), 1);                 // 1회만
 }
 
 QTEST_GUILESS_MAIN(TstSimulationEngine)

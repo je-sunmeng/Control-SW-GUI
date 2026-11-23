@@ -10,7 +10,7 @@
 #include <QVBoxLayout>
 
 namespace {
-enum Col { ColFrom = 0, ColTo, ColAlt, ColSpeed, ColCount };
+enum Col { ColSeg = 0, ColAlt, ColSpeed, ColCount };   // 구간 | 고도 | 속력 (좌표는 툴팁)
 }
 
 RouteSegmentTable::RouteSegmentTable(QWidget* parent)
@@ -20,18 +20,16 @@ RouteSegmentTable::RouteSegmentTable(QWidget* parent)
     , m_removeLast(new QPushButton(QStringLiteral("끝점 삭제"), this))
     , m_applyAll(new QPushButton(QStringLiteral("전체 적용"), this))
 {
-    m_table->setHorizontalHeaderLabels(
-        {QStringLiteral("시작점"), QStringLiteral("끝점"), QStringLiteral("고도"), QStringLiteral("속력")});
-    m_table->verticalHeader()->setVisible(true);
+    m_table->setHorizontalHeaderLabels({QStringLiteral("구간"), QStringLiteral("고도"), QStringLiteral("속력")});
+    m_table->verticalHeader()->setVisible(false);
     m_table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    m_table->verticalHeader()->setDefaultSectionSize(26);
-    m_table->horizontalHeader()->setSectionResizeMode(ColFrom, QHeaderView::Stretch);
-    m_table->horizontalHeader()->setSectionResizeMode(ColTo, QHeaderView::Stretch);
-    m_table->horizontalHeader()->setSectionResizeMode(ColAlt, QHeaderView::ResizeToContents);
-    m_table->horizontalHeader()->setSectionResizeMode(ColSpeed, QHeaderView::ResizeToContents);
+    m_table->verticalHeader()->setDefaultSectionSize(28);
+    m_table->horizontalHeader()->setSectionResizeMode(ColSeg, QHeaderView::ResizeToContents);
+    m_table->horizontalHeader()->setSectionResizeMode(ColAlt, QHeaderView::Stretch);
+    m_table->horizontalHeader()->setSectionResizeMode(ColSpeed, QHeaderView::Stretch);
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_table->setMinimumHeight(110);
+    m_table->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);   // 높이 = 행 수에 맞춤
     m_table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     m_summary->setObjectName(QStringLiteral("placeholderLabel"));
@@ -54,10 +52,11 @@ RouteSegmentTable::RouteSegmentTable(QWidget* parent)
     buttons->addWidget(m_removeLast);
     buttons->addWidget(m_applyAll);
 
+    EditorUtil::fitTableHeight(m_table);
     auto* l = new QVBoxLayout(this);
     l->setContentsMargins(0, 0, 0, 0);
     l->setSpacing(4);
-    l->addWidget(m_table, 1);
+    l->addWidget(m_table);
     l->addWidget(m_summary);
     l->addLayout(buttons);
 }
@@ -66,11 +65,10 @@ void RouteSegmentTable::rebuild(int rows)
 {
     m_table->setRowCount(rows);
     for (int i = 0; i < rows; ++i) {
-        for (int c : {int(ColFrom), int(ColTo)}) {
-            auto* item = new QTableWidgetItem;
-            item->setFlags(Qt::ItemIsEnabled);
-            m_table->setItem(i, c, item);
-        }
+        auto* item = new QTableWidgetItem;
+        item->setFlags(Qt::ItemIsEnabled);
+        item->setTextAlignment(Qt::AlignCenter);
+        m_table->setItem(i, ColSeg, item);
         auto* alt = EditorUtil::makeSpin(RouteLimits::MinAltitudeKm, RouteLimits::MaxAltitudeKm, 2, QStringLiteral("km"), 0.5);
         auto* spd = EditorUtil::makeSpin(RouteLimits::MinSpeedMps, RouteLimits::MaxSpeedMps, 1, QStringLiteral("m/s"), 10);
         alt->setFrame(false);
@@ -90,19 +88,21 @@ void RouteSegmentTable::setRoute(const Route& route)
 {
     m_route = route;
     const int rows = route.segmentCount();
-    if (m_table->rowCount() != rows)
+    if (m_table->rowCount() != rows) {
         rebuild(rows);
+        EditorUtil::fitTableHeight(m_table);
+    }
     for (int i = 0; i < rows; ++i) {
         const int e = route.endIndex(i);
         const GeoPoint a = route.waypoints[i], b = route.waypoints[e];
         const bool closing = route.closed && e == 0;   // 루프의 되돌아오는 구간
-        m_table->item(i, ColFrom)->setText(EditorUtil::formatGeo(a.lat, a.lon));
-        m_table->item(i, ColTo)->setText(closing ? QStringLiteral("↺ 시작점") : EditorUtil::formatGeo(b.lat, b.lon));
-        m_table->item(i, ColFrom)->setToolTip(QStringLiteral("WP%1").arg(i + 1));
-        m_table->item(i, ColTo)->setToolTip(QStringLiteral("WP%1%2 · 구간 %3 km")
-                                                .arg(e + 1)
-                                                .arg(closing ? QStringLiteral(" (시작점, 루프)") : QString())
-                                                .arg(route.segmentLengthKm(i), 0, 'f', 1));
+        QTableWidgetItem* seg = m_table->item(i, ColSeg);
+        seg->setText(closing ? QStringLiteral("WP%1 → WP1 ↺").arg(i + 1)
+                             : QStringLiteral("WP%1 → WP%2").arg(i + 1).arg(e + 1));
+        seg->setToolTip(QStringLiteral("%1 → %2%3\n구간 길이 %4 km")
+                            .arg(EditorUtil::formatGeo(a.lat, a.lon), EditorUtil::formatGeo(b.lat, b.lon))
+                            .arg(closing ? QStringLiteral(" (시작점, 루프)") : QString())
+                            .arg(route.segmentLengthKm(i), 0, 'f', 1));
         EditorUtil::setSilently(static_cast<QDoubleSpinBox*>(m_table->cellWidget(i, ColAlt)), route.segments[i].altitudeKm);
         EditorUtil::setSilently(static_cast<QDoubleSpinBox*>(m_table->cellWidget(i, ColSpeed)), route.segments[i].speedMps);
     }

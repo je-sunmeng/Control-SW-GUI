@@ -118,9 +118,10 @@ void PlatformItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWi
         break;
     case Kind::Formation: {
         // 전투기 형상, 편대규모만큼 V 대형 (선두 + 좌우 후방 + 후미)
-        static const QPointF offs[] = {{0, -9}, {-15, 6}, {15, 6}, {0, 20}};
+        // 작게: 편대 허위타겟(T1..)을 가리지 않도록
+        static const QPointF offs[] = {{0, -5}, {-8, 3}, {8, 3}, {0, 11}};
         for (int i = 0; i < std::clamp(m_size, 1, 4); ++i)
-            painter->drawPath(fighterPath(11).translated(offs[i]));
+            painter->drawPath(fighterPath(6.5).translated(offs[i]));
         break;
     }
     case Kind::MovingTarget: {

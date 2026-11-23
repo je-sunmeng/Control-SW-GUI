@@ -32,8 +32,8 @@ constexpr qreal kHighlightBoost = 5.0;
 // 런타임 아이템
 constexpr qreal kNoiseSectorZ = 15.0;
 constexpr qreal kBeamZ = 18.0;
-constexpr qreal kFormationTargetZ = 38.0;
 constexpr qreal kPlatformZ = 40.0;
+constexpr qreal kFormationTargetZ = 41.0;   // 편대 아이콘보다 위 (가려지지 않게)
 constexpr qreal kGhostZ = 42.0;
 constexpr qreal kMarkZ = 45.0;
 constexpr int kMaxMarks = 5000;            // 탐지 지점 최대 보관 수 (초과 시 오래된 것부터 제거)
@@ -357,12 +357,12 @@ void MapScene::applySnapshot(const SimSnapshot& s)
         RandomGhostItem*& item = m_ghosts[g.key];
         if (!item) {
             const Radar* r = m_model->radar(g.radarId);
-            item = new RandomGhostItem(r ? ColorPalette::radar(r->colorIndex).lighter(150) : QColor(Qt::white));
+            item = new RandomGhostItem(r ? ColorPalette::radar(r->colorIndex) : QColor(Qt::white));
             item->setZValue(kGhostZ);
             item->setPos(m_proj.toScene(g.pos));
             addItem(item);
         }
-        item->setOpacity(g.opacityAt(s.simTime) * RandomGhostItem::MaxOpacity);
+        item->setState(g.lifetimeSec > 0 ? (s.simTime - g.bornAt) / g.lifetimeSec : 1.0, g.opacityAt(s.simTime));
     }
     for (auto it = m_ghosts.begin(); it != m_ghosts.end();) {
         if (!ghostKeys.contains(it.key())) {
